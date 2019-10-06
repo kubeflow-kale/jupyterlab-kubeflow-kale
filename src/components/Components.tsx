@@ -4,8 +4,6 @@ import {
     makeStyles, createStyles, createMuiTheme
 } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
-import { ThemeProvider } from '@material-ui/styles';
-import { indigo } from '@material-ui/core/colors';
 import {MenuItem, Select} from "@material-ui/core";
 import Chip from "@material-ui/core/Chip";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -24,11 +22,11 @@ const useStyles = makeStyles(() =>
         input: {
             borderRadius: 4,
             position: 'relative',
-            color: "var(--jp-ui-font-color1)",
-            backgroundColor: "var(--jp-layout-color1)",
-            '&$cssFocused $notchedOutline': {
-                borderColor: "var(--md-indigo-300) !important",
-            }
+            // color: "var(--jp-ui-font-color1)",
+            // backgroundColor: "var(--jp-layout-color1)",
+            // '&$cssFocused $notchedOutline': {
+            //     borderColor: "var(--md-indigo-300) !important",
+            // }
         },
         focused: {},
         notchedOutline: {
@@ -38,21 +36,21 @@ const useStyles = makeStyles(() =>
         textField: {
             width: "100%",
         },
-        menu: {
-            backgroundColor: "var(--jp-layout-color1)",
-            color: "var(--jp-ui-font-color1)"
-        },
+        // menu: {
+        //     backgroundColor: "var(--jp-layout-color1)",
+        //     color: "var(--jp-ui-font-color1)"
+        // },
         helperLabel: {
             color: "var(--jp-info-color0)"
         }
     }),
 );
 
-const theme = createMuiTheme({
-  palette: {
-    primary: indigo,
-  },
-});
+// const theme = createMuiTheme({
+//   palette: {
+//     primary: indigo,
+//   },
+// });
 
 
 interface IMaterialInput {
@@ -104,7 +102,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = (props) =>
     let helperText = (props.helperText) ? props.helperText: null;
     helperText = (error)? props.regexErrorMsg: helperText;
 
-    return <ThemeProvider theme={theme}><TextField
+    return <TextField
             InputLabelProps={{
                 classes: {
                     root: classes.label
@@ -132,7 +130,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = (props) =>
             variant="outlined"
             type={props.numeric && 'number'}
             helperText={helperText}
-    /></ThemeProvider>
+    />
 };
 
 interface IMaterialSelect {
@@ -147,8 +145,7 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = (props) 
 
     const classes = useStyles({});
 
-    return <ThemeProvider theme={theme}>
-        <TextField
+    return <TextField
             select
             InputLabelProps={{
                 classes: {
@@ -162,13 +159,13 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = (props) 
                     notchedOutline: classes.notchedOutline,
                 }
             }}
-            SelectProps={{
-              MenuProps: {
-                  PaperProps: {
-                    className: classes.menu,
-                  }
-              },
-            }}
+            // SelectProps={{
+            //   MenuProps: {
+            //       PaperProps: {
+            //         className: classes.menu,
+            //       }
+            //   },
+            // }}
             className={classes.textField}
             id={props.label}
             label={props.label}
@@ -183,7 +180,6 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = (props) 
                 </MenuItem>
             ))}
         </TextField>
-    </ThemeProvider>
 };
 
 
@@ -195,10 +191,10 @@ const useStylesSelectMulti = makeStyles(() =>
             },
         },
         outlined: {},
-        menu: {
-            backgroundColor: "var(--jp-layout-color1)",
-            color: "var(--jp-ui-font-color1)"
-        },
+        // menu: {
+        //     backgroundColor: "var(--jp-layout-color1)",
+        //     color: "var(--jp-ui-font-color1)"
+        // },
         chips: {
             display: 'flex',
             flexWrap: 'wrap',
@@ -227,8 +223,7 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
         ? findDOMNode(inputLabelRef).offsetWidth
     : 0;
 
-    return <ThemeProvider theme={theme}>
-        <FormControl variant='outlined' margin='dense' className={classes.multiSelectForm}>
+    return <FormControl variant='outlined' margin='dense' className={classes.multiSelectForm}>
             <InputLabel
             ref={ref => {
               setInputLabelRef(ref);
@@ -243,11 +238,11 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
                 root: classes.root,
                 outlined: classes.outlined,
             }}
-            MenuProps={{
-                PaperProps: {
-                    className: classes.menu,
-                }
-            }}
+            // MenuProps={{
+            //     PaperProps: {
+            //         className: classes.menu,
+            //     }
+            // }}
             onChange={evt => props.updateSelected((evt.target as HTMLInputElement).value)}
             margin="dense"
             variant="outlined"
@@ -268,7 +263,6 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
             ))}
         </Select>
         </FormControl>
-    </ThemeProvider>
 };
 
 interface ICollapsablePanel {

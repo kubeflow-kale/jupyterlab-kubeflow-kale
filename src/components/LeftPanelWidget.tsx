@@ -9,11 +9,15 @@ import {
     CollapsablePanel,
     MaterialInput
 } from "./Components";
+import {createMuiTheme} from '@material-ui/core/styles';
 import {CellTags} from "./CellTags";
 import {Cell} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {Dialog, showDialog} from "@jupyterlab/apputils";
 import {SplitDeployButton} from "./DeployButton";
+import {indigo} from "@material-ui/core/colors";
+import { ThemeProvider } from '@material-ui/styles';
+import TextField from "@material-ui/core/TextField";
 
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
@@ -88,6 +92,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         snapshot: false
     };
 
+    divRef = React.createRef<HTMLDivElement>();
+
     removeIdxFromArray = (index: number, arr: Array<any>): Array<any> => {return arr.slice(0, index).concat(arr.slice(index + 1, arr.length))};
 
     updateSelectValue = (val: string) => this.setState({selectVal: val});
@@ -116,6 +122,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     resetState = () => this.setState({...DefaultState, ...DefaultState.metadata});
 
     componentDidMount = () => {
+        if (this.divRef.current) {
+            console.log(`createRefRef div width: ${this.divRef.current.clientWidth}`);
+        }
+
         // Notebook tracker will signal when a notebook is changed
         this.props.tracker.currentChanged.connect(this.handleNotebookChanged, this);
         // Set notebook widget if one is open
@@ -235,8 +245,67 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         await showDialog({ title: "Deployment Result", buttons, body: msg });
     };
 
+    RGBAToHexA = (_r: number, _g: number, _b: number, _a?: number) => {
+      let r = _r.toString(16);
+      let g = _g.toString(16);
+      let b = _b.toString(16);
+      let a = '';
+      if (_a) {
+          a = Math.round(_a * 255).toString(16);
+      }
+
+      if (r.length == 1)
+        r = "0" + r;
+      if (g.length == 1)
+        g = "0" + g;
+      if (b.length == 1)
+        b = "0" + b;
+      if (a.length == 1)
+        a = "0" + a;
+
+      return "#" + r + g + b + a;
+    };
+
+    populateTheme = () => {
+        const st = window.getComputedStyle(document.documentElement);
+        // const uic1 = this.RGBAToHexA(...(st.getPropertyValue('--jp-ui-font-color1').replace('rgba(', '').replace(')', '').split(', ')))
+
+        console.log("Populate theme");
+
+        if (st.getPropertyValue('--jp-ui-font-color1') !== '') {
+            return createMuiTheme({
+                "palette": {
+                    "common": {"black": "#000", "white": "#fff"},
+                    "background": {
+                        "paper": st.getPropertyValue('--jp-layout-color1').trim(),
+                        "default": "#fafafa"
+                    },
+                    "primary": indigo,
+                    // "secondary": {"light": "#ff4081", "main": "#f50057", "dark": "#c51162", "contrastText": "#fff"},
+                    // "error": {"light": "#e57373", "main": "#f44336", "dark": "#d32f2f", "contrastText": "#fff"},
+                    "text": {
+                        "primary": st.getPropertyValue('--jp-ui-font-color1').trim(),
+                        "secondary": "rgba(0, 0, 0, 0.54)",
+                        "disabled": "rgba(0, 0, 0, 0.38)",
+                        "hint": "rgba(0, 0, 0, 0.38)"
+                    }
+                }
+            })
+        }
+        return null;
+    };
+
 
     render() {
+        // get current jp theme
+        // const c1 = window.getComputedStyle(document.documentElement).getPropertyValue('--jp-ui-font-color1');
+        // if (c1 !== "") {
+        //     this.populateTheme(c1)
+        // }
+        const muiTheme = this.populateTheme();
+        if (!muiTheme) {
+            return null
+        }
 
         const experiment_name_input = <MaterialInput
             updateValue={this.updateExperimentName}
@@ -283,7 +352,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         // }
 
         return (
-            <div className={"kubeflow-widget"}>
+            <ThemeProvider theme={muiTheme}>
+            <div ref={this.divRef} className={"kubeflow-widget"}>
                 <div className={"kubeflow-widget-content"}>
 
                     <div>
@@ -333,8 +403,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         handleClick={this.activateRunDeployState}
                     />
                 </div>
-
             </div>
+            </ThemeProvider>
         );
     }
 }
