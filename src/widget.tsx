@@ -60,6 +60,33 @@ function activate(
     widget.title.caption = "Kubeflow Pipelines Deployment Panel";
 
     restorer.add(widget, widget.id);
-    labShell.add(widget, "left");
+
+    const updateTools = () => {
+        // If there are any open notebooks, attach Kale widget to side panel
+        // if it's not already there
+        if (tracker.size) {
+            if (!widget.isAttached) {
+                labShell.add(widget, "left");
+            }
+            return;
+        }
+        // If there are no Notebooks, close Kale widget
+        widget.close();
+    }
+
+    if (tracker.size) {
+        lab.shell.add(widget, "left");
+    }
+
+    if (labShell) {
+        labShell.currentChanged.connect((sender, args) => {
+            updateTools();
+        });
+    } else {
+        tracker.currentChanged.connect((sender, args) => {
+            updateTools();
+        });
+    }
+
     return {widget};
 }

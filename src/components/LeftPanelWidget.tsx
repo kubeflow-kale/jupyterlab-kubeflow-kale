@@ -85,6 +85,7 @@ interface IState {
     volumes?: IVolumeMetadata[];
     selectVolumeTypes: {label: string, value: string}[];
     useNotebookVolumes: boolean;
+    mounted: boolean;
 }
 
 export interface IAnnotation {
@@ -142,6 +143,7 @@ const DefaultState: IState = {
     volumes: [],
     selectVolumeTypes: selectVolumeTypes,
     useNotebookVolumes: true,
+    mounted: false,
 };
 
 const DefaultEmptyVolume: IVolumeMetadata = {
@@ -328,15 +330,19 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     resetState = () => this.setState({...DefaultState, ...DefaultState.metadata});
 
     componentDidMount = () => {
+        this.state.mounted = true;
         // Notebook tracker will signal when a notebook is changed
         this.props.tracker.currentChanged.connect(this.handleNotebookChanged, this);
         // Set notebook widget if one is open
         if (this.props.tracker.currentWidget instanceof  NotebookPanel) {
+            this.setState({activeNotebook: this.props.tracker.currentWidget});
             this.setNotebookPanel(this.props.tracker.currentWidget);
-        } else {
-            this.setNotebookPanel(null);
         }
     };
+
+    componentWillUnmount = () => {
+        this.state.mounted = false;
+    }
 
     componentDidUpdate = (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
         // fast comparison of Metadata objects.
@@ -362,6 +368,9 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     * The parameters are automatically passed from the signal when a switch occurs.
     */
     handleNotebookChanged = async (tracker: INotebookTracker, notebook: NotebookPanel) => {
+        if (!this.state.mounted) {
+            return;
+        }
         // Set the current notebook and wait for the session to be ready
         if (notebook) {
             this.setState({activeNotebook: notebook});
@@ -374,8 +383,6 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     handleNotebookDisposed = async (notebookPanel: NotebookPanel) => {
         notebookPanel.disposed.disconnect(this.handleNotebookDisposed);
-        // reset widget to default state
-        this.resetState()
     };
 
     handleActiveCellChanged = async (notebook: Notebook, activeCell: Cell) => {
