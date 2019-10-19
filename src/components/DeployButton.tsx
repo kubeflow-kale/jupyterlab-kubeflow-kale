@@ -2,7 +2,8 @@ import * as React from "react";
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import ButtonGroup from '@material-ui/core/ButtonGroup';
-import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
+import KeyboardArrowUp from '@material-ui/icons/KeyboardArrowUp';
+import KeyboardArrowDown from '@material-ui/icons/KeyboardArrowDown';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import Grow from '@material-ui/core/Grow';
 import Paper from '@material-ui/core/Paper';
@@ -61,7 +62,7 @@ export const SplitDeployButton: React.FunctionComponent<ISplitDeployButton> = (p
                 onClick={handleToggle}
                 style={{width: 'auto'}}
               >
-                <ArrowDropDownIcon />
+                { open ? <KeyboardArrowDown /> : <KeyboardArrowUp /> }
               </Button>
             </ButtonGroup>
             <Popper style={{zIndex: 2}} open={open} anchorEl={anchorRef.current} transition disablePortal>
