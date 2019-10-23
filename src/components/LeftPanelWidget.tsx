@@ -13,6 +13,7 @@ import {CellTags} from "./CellTags";
 import {Cell} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
+import {ExperimentInput} from "./ExperimentInput";
 
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
@@ -36,6 +37,21 @@ const getRpcStatusName = (code: number) => {
     }
 };
 
+export interface ISelectOption {
+    label: string;
+    value: string;
+}
+
+export interface IExperiment {
+    id: string;
+    name: string;
+}
+
+export const NEW_EXPERIMENT: IExperiment = {
+    name: "+ New Experiment",
+    id: "new"
+};
+
 interface IProps {
     tracker: INotebookTracker;
     notebook: NotebookPanel
@@ -50,6 +66,8 @@ interface IState {
     activeNotebook?: NotebookPanel;
     activeCell?: Cell;
     activeCellIndex?: number;
+    experiments: IExperiment[];
+    gettingExperiments: boolean;
 }
 
 export interface IAnnotation {
@@ -76,7 +94,8 @@ export interface IVolumeMetadata {
 // keep names with Python notation because they will be read
 // in python by Kale.
 interface IKaleNotebookMetadata {
-    experiment_name: string;
+    experiment: IExperiment;
+    experiment_name: string;    // Keep this for backwards compatibility
     pipeline_name: string;
     pipeline_description: string;
     docker_image: string;
@@ -85,6 +104,7 @@ interface IKaleNotebookMetadata {
 
 const DefaultState: IState = {
     metadata: {
+        experiment: {id: '', name: ''},
         experiment_name: '',
         pipeline_name: '',
         pipeline_description: '',
@@ -96,6 +116,10 @@ const DefaultState: IState = {
     deployDebugMessage: false,
     selectVal: '',
     activeNotebook: null,
+    activeCell: null,
+    activeCellIndex: 0,
+    experiments: [],
+    gettingExperiments: false,
 };
 
 export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
@@ -122,7 +146,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     updateSelectValue = (val: string) => this.setState({selectVal: val});
     // update metadata state values: use destructure operator to update nested dict
-    updateExperimentName = (name: string) => this.setState({metadata: {...this.state.metadata, experiment_name: name}});
+    updateExperiment = (experiment: IExperiment) => this.setState({metadata: {...this.state.metadata, experiment: experiment, experiment_name: experiment.name}});
     updatePipelineName = (name: string) => this.setState({metadata: {...this.state.metadata, pipeline_name: name}});
     updatePipelineDescription = (desc: string) => this.setState({metadata: {...this.state.metadata, pipeline_description: desc}});
     updateDockerImage = (name: string) => this.setState({metadata: {...this.state.metadata, docker_image: name}});
@@ -252,6 +276,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             notebook.disposed.connect(this.handleNotebookDisposed);
             notebook.content.activeCellChanged.connect(this.handleActiveCellChanged);
             const currentCell = {activeCell: notebook.content.activeCell, activeCellIndex: notebook.content.activeCellIndex};
+            this.getExperiments();
 
             // get notebook metadata
             const notebookMetadata = NotebookUtils.getMetaData(
@@ -262,7 +287,15 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             console.log(notebookMetadata);
             // if the key exists in the notebook's metadata
             if (notebookMetadata) {
+                let experiment: IExperiment = {id: '', name: ''};
+                if (notebookMetadata['experiment']) {
+                    experiment = {
+                        id: notebookMetadata['experiment']['id'] || '',
+                        name: notebookMetadata['experiment']['name'] || '',
+                    };
+                }
                 let metadata: IKaleNotebookMetadata = {
+                    experiment: experiment,
                     experiment_name: notebookMetadata['experiment_name'] || '',
                     pipeline_name: notebookMetadata['pipeline_name'] || '',
                     pipeline_description: notebookMetadata['pipeline_description'] || '',
@@ -444,13 +477,75 @@ __result = run("${func}", "${JSON.stringify(kwargs)}")
         }
     };
 
+    getExperiments = async () => {
+        this.setState({gettingExperiments: true});
+        const list_experiments: IExperiment[] = await this.executeRpc("kfp.list_experiments");
+        if (list_experiments) {
+            this.setState({experiments: list_experiments.concat([NEW_EXPERIMENT])});
+        } else {
+            this.setState({experiments: [NEW_EXPERIMENT]});
+        }
+
+        // Fix experiment metadata
+        let selectedExperiments: IExperiment[] = this.state.experiments.filter(
+            e => (
+                e.id === this.state.metadata.experiment.id
+                || e.name === this.state.metadata.experiment.name
+                || e.name === this.state.metadata.experiment_name
+            )
+        );
+        if (selectedExperiments.length === 0 || selectedExperiments[0].id === NEW_EXPERIMENT.id) {
+            let name = this.state.experiments[0].name;
+            if (name === NEW_EXPERIMENT.name) {
+                name = (this.state.metadata.experiment.name !== '') ?
+                    this.state.metadata.experiment.name
+                    : this.state.metadata.experiment_name;
+            }
+            this.updateExperiment({
+                ...this.state.experiments[0],
+                name: name,
+            });
+        } else {
+            this.updateExperiment(selectedExperiments[0]);
+        }
+
+        this.setState({gettingExperiments: false});
+    }
+
     render() {
 
-        const experiment_name_input = <MaterialInput
-            updateValue={this.updateExperimentName}
-            value={this.state.metadata.experiment_name}
-            label={"Experiment Name"}
-        />;
+        // FIXME: What about human-created Notebooks? Match name and old API as well
+        const selectedExperiments: IExperiment[] = this.state.experiments.filter(
+            e => (
+                e.id === this.state.metadata.experiment.id
+                || e.name === this.state.metadata.experiment.name
+                || e.name === this.state.metadata.experiment_name
+            )
+        );
+        if (this.state.experiments.length > 0 && selectedExperiments.length === 0) {
+            selectedExperiments.push(this.state.experiments[0]);
+        }
+        let experimentInputSelected = '';
+        let experimentInputValue = ''
+        if (selectedExperiments.length > 0) {
+            experimentInputSelected = selectedExperiments[0].id;
+            if (selectedExperiments[0].id === NEW_EXPERIMENT.id) {
+                if (this.state.metadata.experiment.name !== '') {
+                    experimentInputValue = this.state.metadata.experiment.name;
+                } else {
+                    this.state.metadata.experiment_name;
+                }
+            } else {
+                experimentInputValue = selectedExperiments[0].name;
+            }
+        }
+        const experiment_name_input = <ExperimentInput
+            updateValue={this.updateExperiment}
+            options={this.state.experiments}
+            selected={experimentInputSelected}
+            value={experimentInputValue}
+            loading={this.state.gettingExperiments}
+        />
 
         const pipeline_name_input = <MaterialInput
             label={"Pipeline Name"}
