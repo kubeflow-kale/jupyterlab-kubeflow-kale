@@ -17,6 +17,25 @@ import {SplitDeployButton} from "./DeployButton";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
 
+enum RPC_CALL_STATUS {
+    OK = 0,
+    ImportError = 1,
+    ExecutionError = 2,
+}
+
+const getRpcStatusName = (code: number) => {
+    switch(code) {
+        case RPC_CALL_STATUS.OK:
+            return 'OK';
+        case RPC_CALL_STATUS.ImportError:
+            return 'ImportError';
+        case RPC_CALL_STATUS.ExecutionError:
+                return 'ExecutionError';
+        default:
+            return 'UnknownError';
+    }
+};
+
 interface IProps {
     tracker: INotebookTracker;
     notebook: NotebookPanel
@@ -358,6 +377,72 @@ except Exception as e:
         this.setState({runDeployment: false});
     };
 
+    // Execute kale.rpc module functions
+    // Example: func_result = await this.executeRpc("rpc_submodule.func", {arg1, arg2})
+    //          where func_result is a JSON object
+    executeRpc = async (func: string, kwargs: any = {}) => {
+        const cmd: string = `
+from kale.rpc.run import run
+__result = run("${func}", "${JSON.stringify(kwargs)}")
+        `;
+        console.log("Executing command: " + cmd);
+        const expressions = {result: "__result"};
+        const output = await NotebookUtils.sendKernelRequest(this.state.activeNotebook, cmd, expressions);
+
+        const argsAsStr = Object.keys(kwargs).map(key => `${key}=${kwargs[key]}`).join(', ');
+        let msg = [
+            `Function Call: ${func}(${argsAsStr})`,
+        ];
+        // Log output
+        if (output.result.status !== "ok") {
+            const title = `Kernel failed during code execution`;
+            msg = msg.concat([
+                `Status: ${output.result.status}`,
+                `Output: ${JSON.stringify(output, null, 3)}`
+            ]);
+            console.error([title].concat(msg));
+            await NotebookUtils.showMessage(title, msg);
+            return null;
+        }
+
+        console.log(msg.concat([output]));
+        const raw_data = output.result.data["text/plain"];
+        const json_data = raw_data.substring(1, raw_data.length - 1);
+
+        // Validate response is a JSON
+        // If successful, run() method returns json.dumps() of any result
+        let parsedResult = undefined;
+        try {
+            parsedResult = JSON.parse(json_data);
+        } catch (error) {
+            const title = `Failed to parse response as JSON`;
+            msg = msg.concat([
+                `Error: ${JSON.stringify(error, null, 3)}`,
+                `Response data: ${json_data}`
+            ]);
+            console.error(msg);
+            await NotebookUtils.showMessage(title, msg);
+            return null;
+        }
+
+        if (parsedResult.status !== 0) {
+            const title = `An error has occured`;
+            msg = msg.concat([
+                `Status: ${parsedResult.status} (${getRpcStatusName(parsedResult.status)})`,
+                `Type: ${JSON.stringify(parsedResult.err_cls, null, 3)}`,
+                `Message: ${parsedResult.err_message}`
+            ]);
+            console.error(msg);
+            await NotebookUtils.showMessage(title, msg);
+            return null;
+        } else {
+            msg = msg.concat([
+                `Result: ${parsedResult}`
+            ]);
+            console.log(msg);
+            return parsedResult.result;
+        }
+    };
 
     render() {
 
