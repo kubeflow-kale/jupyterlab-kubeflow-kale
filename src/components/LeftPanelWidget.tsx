@@ -4,6 +4,7 @@ import {
     NotebookPanel
 } from "@jupyterlab/notebook";
 import NotebookUtils from "../utils/NotebookUtils";
+import Switch from "react-switch";
 
 import {
     CollapsablePanel,
@@ -14,7 +15,6 @@ import {Cell} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
 import {ExperimentInput} from "./ExperimentInput";
-
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
 
@@ -81,9 +81,10 @@ interface IState {
     activeCellIndex?: number;
     experiments: IExperiment[];
     gettingExperiments: boolean;
-    notebookVolumes: IVolumeMetadata[];
-    volumes: IVolumeMetadata[];
+    notebookVolumes?: IVolumeMetadata[];
+    volumes?: IVolumeMetadata[];
     selectVolumeTypes: {label: string, value: string}[];
+    useNotebookVolumes: boolean;
 }
 
 export interface IAnnotation {
@@ -140,6 +141,7 @@ const DefaultState: IState = {
     notebookVolumes: [],
     volumes: [],
     selectVolumeTypes: selectVolumeTypes,
+    useNotebookVolumes: true,
 };
 
 const DefaultEmptyVolume: IVolumeMetadata = {
@@ -171,6 +173,16 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     updatePipelineName = (name: string) => this.setState({metadata: {...this.state.metadata, pipeline_name: name}});
     updatePipelineDescription = (desc: string) => this.setState({metadata: {...this.state.metadata, pipeline_description: desc}});
     updateDockerImage = (name: string) => this.setState({metadata: {...this.state.metadata, docker_image: name}});
+    updateVolumesSwitch = () => {
+        this.setState({
+            useNotebookVolumes: !this.state.useNotebookVolumes,
+            volumes: this.state.notebookVolumes,
+            metadata: {
+                ...this.state.metadata,
+                volumes: this.state.notebookVolumes,
+            },
+        })
+    };
 
     // Volume managers
     deleteVolume = (idx: number) => {
@@ -720,6 +732,8 @@ __result = run("${func}", "${JSON.stringify(kwargs)}")
             notebookMountPoints={this.getNotebookMountPoints()}
             selectVolumeSizeTypes={selectVolumeSizeTypes}
             selectVolumeTypes={this.state.selectVolumeTypes}
+            useNotebookVolumes={this.state.useNotebookVolumes}
+            updateVolumesSwitch={this.updateVolumesSwitch}
         />;
 
         return (
