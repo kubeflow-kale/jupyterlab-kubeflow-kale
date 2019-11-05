@@ -556,7 +556,7 @@ except Exception as e:
     executeRpc = async (func: string, kwargs: any = {}) => {
         const cmd: string = `
 from kale.rpc.run import run
-__result = run("${func}", "${JSON.stringify(kwargs)}")
+__result = run("${func}", ${JSON.stringify(kwargs)})
         `;
         console.log("Executing command: " + cmd);
         const expressions = {result: "__result"};
