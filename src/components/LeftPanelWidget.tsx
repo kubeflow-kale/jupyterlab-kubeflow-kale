@@ -578,7 +578,7 @@ except Exception as e:
 
         console.log(msg.concat([output]));
         const raw_data = output.result.data["text/plain"];
-        const json_data = window.atob(raw_data);
+        const json_data = window.atob(raw_data.substring(1, raw_data.length-1));
 
         // Validate response is a JSON
         // If successful, run() method returns json.dumps() of any result
