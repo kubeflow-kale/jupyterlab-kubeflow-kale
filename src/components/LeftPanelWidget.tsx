@@ -342,7 +342,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     componentWillUnmount = () => {
         this.state.mounted = false;
-    }
+    };
 
     componentDidUpdate = (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
         // fast comparison of Metadata objects.
@@ -401,9 +401,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             notebook.disposed.connect(this.handleNotebookDisposed);
             notebook.content.activeCellChanged.connect(this.handleActiveCellChanged);
             const currentCell = {activeCell: notebook.content.activeCell, activeCellIndex: notebook.content.activeCellIndex};
-            this.getExperiments();
+            await this.getExperiments();
             // Get information about volumes currently mounted on the notebook server
-            this.getMountedVolumes()
+            await this.getMountedVolumes();
+            // Detect the base image of the current Notebook Server
+            await this.getBaseImage();
 
             // get notebook metadata
             const notebookMetadata = NotebookUtils.getMetaData(
@@ -436,7 +438,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     experiment_name: notebookMetadata['experiment_name'] || '',
                     pipeline_name: notebookMetadata['pipeline_name'] || '',
                     pipeline_description: notebookMetadata['pipeline_description'] || '',
-                    docker_image: notebookMetadata['docker_image'] || '',
+                    docker_image: notebookMetadata['docker_image'] || DefaultState.metadata.docker_image,
                     volumes: notebookMetadata['volumes'] || [],
                 };
                 this.setState({
@@ -668,6 +670,15 @@ except Exception as e:
             });
         } else {
             this.setState({selectVolumeTypes: selectVolumeTypes.slice(0, selectVolumeTypes.length - 1)});
+        }
+    };
+
+    getBaseImage = async () => {
+        let baseImage: string = await this.executeRpc("nb.get_base_image");
+        if (baseImage) {
+            DefaultState.metadata.docker_image = baseImage
+        } else {
+            DefaultState.metadata.docker_image = ''
         }
     };
 
