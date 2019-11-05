@@ -554,10 +554,8 @@ except Exception as e:
     // Example: func_result = await this.executeRpc("rpc_submodule.func", {arg1, arg2})
     //          where func_result is a JSON object
     executeRpc = async (func: string, kwargs: any = {}) => {
-        const cmd: string = `
-from kale.rpc.run import run
-__result = run("${func}", ${JSON.stringify(kwargs)})
-        `;
+        const cmd: string = `from kale.rpc.run import run\n`
+            + `__result = run("${func}", '${window.btoa(JSON.stringify(kwargs))}')`;
         console.log("Executing command: " + cmd);
         const expressions = {result: "__result"};
         const output = await NotebookUtils.sendKernelRequest(this.state.activeNotebook, cmd, expressions);
@@ -580,7 +578,7 @@ __result = run("${func}", ${JSON.stringify(kwargs)})
 
         console.log(msg.concat([output]));
         const raw_data = output.result.data["text/plain"];
-        const json_data = raw_data.substring(1, raw_data.length - 1);
+        const json_data = window.atob(raw_data);
 
         // Validate response is a JSON
         // If successful, run() method returns json.dumps() of any result
