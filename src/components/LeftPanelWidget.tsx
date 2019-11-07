@@ -4,6 +4,7 @@ import {
     NotebookPanel
 } from "@jupyterlab/notebook";
 import NotebookUtils from "../utils/NotebookUtils";
+import CellUtils from "../utils/CellUtils";
 import Switch from "react-switch";
 
 import {
@@ -439,6 +440,26 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             console.log("Kubeflow metadata:");
             console.log(notebookMetadata);
 
+            // Detect whether this is an exploration, i.e., recovery from snapshot
+            const nbFileName = this.state.activeNotebook.context.path.split('/').pop();
+            const exploration = await this.executeRpc(
+                'nb.explore_notebook',
+                {source_notebook_path: nbFileName}
+            );
+            if (exploration && exploration.is_exploration) {
+                await this.unmarshalData(nbFileName);
+                const cell = this.getCellByStepName(notebook, 'block:' + exploration.step_name);
+                notebook.content.select(cell.cell);
+                notebook.content.activeCellIndex = cell.index;
+                const cellPosition = (notebook.content.node.childNodes[cell.index] as HTMLElement).getBoundingClientRect();
+                this.setState({activeCellIndex: cell.index, activeCell: cell.cell});
+                notebook.content.scrollToPosition(cellPosition.top);
+                await NotebookUtils.showMessage(
+                    'Notebook Exploration',
+                    [`You are now ready to explore the step: "${exploration.step_name}"`]
+                );
+            }
+
             await this.getExperiments();
             // Get information about volumes currently mounted on the notebook server
             await this.getMountedVolumes();
@@ -682,7 +703,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             return null;
         }
 
-        // console.log(msg.concat([output]));
+        console.log(msg.concat([output]));
         const raw_data = output.result.data["text/plain"];
         const json_data = window.atob(raw_data.substring(1, raw_data.length-1));
 
@@ -808,6 +829,27 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             "rok.replace_cloned_volumes",
             {bucket, obj, version, volumes}
         );
+    }
+
+    unmarshalData = async (nbFileName: string) => {
+        const cmd: string = `from kale.rpc.nb import unmarshal_data as __kale_rpc_unmarshal_data\n`
+            + `locals().update(__kale_rpc_unmarshal_data("${nbFileName}"))`;
+        console.log("Executing command: " + cmd);
+        await NotebookUtils.sendKernelRequest(this.state.activeNotebook, cmd, {});
+    }
+
+    getCellByStepName = (notebook: NotebookPanel, stepName: string): {cell: Cell; index: number} => {
+        for(let i = 0; i < notebook.model.cells.length; i++) {
+            const tags: string[] = CellUtils.getCellMetaData(
+                notebook.content,
+                i,
+                'tags'
+            );
+            const name = (tags || []).filter(t => t !== '' && !t.startsWith('prev:'))[0];
+            if (name === stepName) {
+                return {cell: notebook.content.widgets[i], index: i};
+            }
+        }
     }
 
     render() {

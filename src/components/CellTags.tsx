@@ -72,15 +72,15 @@ export class CellTags extends React.Component<IProps, IState> {
     };
 
     componentDidMount = () => {
-        if (this.props.activeCell) {
-            if (isCodeCellModel(this.props.activeCell.model)) {
+        if (this.props.activeCellIndex) {
+            if (isCodeCellModel(this.props.notebook.content.model.cells.get(this.props.activeCellIndex))) {
                 this.readAndShowMetadata();
             }
         }
     };
 
     componentDidUpdate = async (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
-        if (prevProps.activeCellIndex !== this.props.activeCellIndex) {
+        if (prevProps.activeCellIndex !== this.props.activeCellIndex || prevProps.activeCell !== this.props.activeCell) {
             // listen to cell type changes
             if (prevProps.activeCell) {
                 prevProps.activeCell.model.contentChanged.disconnect(this.listenCellContentChanged)
@@ -101,7 +101,7 @@ export class CellTags extends React.Component<IProps, IState> {
             this.props.activeCell.model.contentChanged.connect(this.listenCellContentChanged);
 
             // if the active cell is not of type `code`, then hide panel
-            if (!isCodeCellModel(this.props.activeCell.model)) {
+            if (!isCodeCellModel(this.props.notebook.content.model.cells.get(this.props.activeCellIndex))) {
                 this.setState({show: false});
                 return
             }
