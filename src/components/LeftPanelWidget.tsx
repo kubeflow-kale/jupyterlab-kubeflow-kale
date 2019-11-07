@@ -418,19 +418,21 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             notebook.disposed.connect(this.handleNotebookDisposed);
             notebook.content.activeCellChanged.connect(this.handleActiveCellChanged);
             const currentCell = {activeCell: notebook.content.activeCell, activeCellIndex: notebook.content.activeCellIndex};
-            await this.getExperiments();
-            // Get information about volumes currently mounted on the notebook server
-            await this.getMountedVolumes();
-            // Detect the base image of the current Notebook Server
-            await this.getBaseImage();
 
-            // get notebook metadata
+            // get existing notebook before we overwrite it with something else
             const notebookMetadata = NotebookUtils.getMetaData(
                 notebook,
                 KALE_NOTEBOOK_METADATA_KEY
             );
             console.log("Kubeflow metadata:");
             console.log(notebookMetadata);
+
+            await this.getExperiments();
+            // Get information about volumes currently mounted on the notebook server
+            await this.getMountedVolumes();
+            // Detect the base image of the current Notebook Server
+            await this.getBaseImage();
+
             // if the key exists in the notebook's metadata
             if (notebookMetadata) {
                 let experiment: IExperiment = {id: '', name: ''};
