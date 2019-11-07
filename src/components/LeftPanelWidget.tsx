@@ -463,7 +463,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     return volume;
                 });
                 if (stateVolumes.length === 0) {
-                    stateVolumes = DefaultState.notebookVolumes;
+                    stateVolumes = this.state.notebookVolumes;
+                } else {
+                    const extraVolumes = this.state.notebookVolumes.filter(v => !stateVolumes.includes(v));
+                    stateVolumes = stateVolumes.concat(extraVolumes);
                 }
 
                 let metadata: IKaleNotebookMetadata = {
@@ -472,7 +475,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     pipeline_name: notebookMetadata['pipeline_name'] || '',
                     pipeline_description: notebookMetadata['pipeline_description'] || '',
                     docker_image: notebookMetadata['docker_image'] || DefaultState.metadata.docker_image,
-                    volumes: notebookMetadata['volumes'] || [],
+                    volumes: stateVolumes,
                 };
                 this.setState({
                     volumes: stateVolumes,
@@ -764,10 +767,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             DefaultState.metadata.volumes = notebookVolumes;
             this.setState({
                 notebookVolumes: notebookVolumes,
-                selectVolumeTypes: selectVolumeTypes
+                selectVolumeTypes: selectVolumeTypes,
             });
         } else {
-            this.setState({selectVolumeTypes: selectVolumeTypes.slice(0, selectVolumeTypes.length - 1)});
+            this.setState({selectVolumeTypes: selectVolumeTypes.filter(t => t.value !== 'clone')});
         }
     };
 
