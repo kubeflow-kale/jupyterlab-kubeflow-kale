@@ -453,6 +453,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         id: notebookMetadata['experiment']['id'] || '',
                         name: notebookMetadata['experiment']['name'] || '',
                     };
+                } else if (notebookMetadata['experiment_name']) {
+                    experiment = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name'])[0];
                 }
                 let stateVolumes = (notebookMetadata['volumes'] || []).map((volume: IVolumeMetadata) => {
                     if (volume.type === 'new_pvc' && volume.annotations.length > 0 && volume.annotations[0].key === 'rok/origin') {
