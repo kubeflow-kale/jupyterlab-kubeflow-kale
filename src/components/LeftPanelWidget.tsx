@@ -555,7 +555,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         // CREATE PIPELINE
         const compileNotebookArgs: ICompileNotebookArgs = {
             source_notebook_path: nbFileName,
-            notebook_metadata_overrides: this.state.metadata,
+            notebook_metadata_overrides: metadata,
             debug: this.state.deployDebugMessage,
         };
         const compileNotebook = await this.executeRpc('nb.compile_notebook', compileNotebookArgs);
