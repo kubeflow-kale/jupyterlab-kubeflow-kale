@@ -15,6 +15,7 @@ import {Cell} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
 import {ExperimentInput} from "./ExperimentInput";
+import { DeploysProgress, DeployProgressState } from "./deploys-progress/DeploysProgress";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
 
@@ -86,6 +87,7 @@ interface IState {
     selectVolumeTypes: {label: string, value: string}[];
     useNotebookVolumes: boolean;
     mounted: boolean;
+    deploys :{ [index:number]:DeployProgressState};
 }
 
 export interface IAnnotation {
@@ -161,7 +163,10 @@ const DefaultState: IState = {
     selectVolumeTypes: selectVolumeTypes,
     useNotebookVolumes: true,
     mounted: false,
+    deploys: {},
 };
+
+let deployIndex = 0;
 
 const DefaultEmptyVolume: IVolumeMetadata = {
     type: 'new_pvc',
@@ -339,7 +344,14 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         });
         return mountPoints;
     };
-    activateRunDeployState = (type: string) => this.setState({runDeployment: true, deploymentType: type});
+
+    activateRunDeployState = (type: string) =>{ 
+        if(!this.state.runDeployment){
+            this.setState({runDeployment: true, deploymentType: type})
+            this.runDeploymentCommand();
+        }
+    };
+
     changeDeployDebugMessage = () => this.setState({deployDebugMessage: !this.state.deployDebugMessage});
 
 
@@ -374,10 +386,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 true)
         }
 
-        // deployment button has been pressed
-        if (prevState.runDeployment !== this.state.runDeployment && this.state.runDeployment) {
-            this.runDeploymentCommand()
-        }
+        // // deployment button has been pressed
+        // if (prevState.runDeployment !== this.state.runDeployment && this.state.runDeployment) {
+        //     this.runDeploymentCommand()
+        // }
     };
 
     /**
@@ -470,8 +482,75 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         }
     };
 
+    wait = (ms:number) =>{
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    runSnapshotProcedure = async (_deployIndex:number) => {
+        const snapshot = await this.snapshotNotebook();
+        // console.warn('snapshot:',snapshot);
+        const taskId = snapshot.task.id;
+        let task = await this.getSnapshotProgress(taskId);
+        // console.warn('task:',task);
+        // console.log("Snapshotting... ", task.progress);
+        this.updateDeployProgress(_deployIndex, { task });
+
+        while (!['success', 'error', 'canceled'].includes(task.status)) {
+            task = await this.getSnapshotProgress(taskId,1000);
+            // console.log("Snapshotting... ", task.progress);
+            this.updateDeployProgress(_deployIndex, { task });
+        }
+
+        if (task.status === 'success') {
+            console.log("Snapshotting successful!");
+            return task;
+        } else if (task.status === 'error') {
+            console.error("Snapshotting failed");
+            console.error("Stopping the deployment...");
+        } else if (task.status === 'canceled') {
+            console.error("Snapshotting canceled");
+            console.error("Stopping the deployment...");
+        }
+
+        return null;
+    }
+
+    updateDeployProgress = (index: number, progress: DeployProgressState) => {
+        let deploy: { [index: number]: DeployProgressState };
+        if (!this.state.deploys[index]) {
+            deploy = { [index]: progress };
+        } else {
+            deploy = { [index]: { ...this.state.deploys[index], ...progress } };
+        }
+        this.setState({ deploys: { ...this.state.deploys, ...deploy } });
+    }
+
+    onPanelRemove = (index: number) => {
+        const deploys = { ...this.state.deploys };
+        deploys[index].deleted = true;
+        this.setState({ deploys });
+    }
+
     runDeploymentCommand = async () => {
+        const _deployIndex = ++deployIndex;
+
+        const task = await this.runSnapshotProcedure(_deployIndex)
+        console.log(task);
+        if (!task) {
+            return;
+        }
+
+        const metadata = this.state.metadata;
+        metadata.volumes = await this.replaceClonedVolumes(
+            task.bucket,
+            task.result.event.object,
+            task.result.event.version,
+            this.state.metadata.volumes
+        );
+        console.log('metadata:', metadata);
+
         const nbFileName = this.state.activeNotebook.context.path.split('/').pop();
+
 
         // CREATE PIPELINE
         const compileNotebookArgs: ICompileNotebookArgs = {
@@ -480,18 +559,20 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             debug: this.state.deployDebugMessage,
         };
         const compileNotebook = await this.executeRpc('nb.compile_notebook', compileNotebookArgs);
-        let msg = ["Pipeline saved successfully at " + compileNotebook.pipeline_package_path];
         if (!compileNotebook) {
-            this.setState({runDeployment: false});
+            this.setState({ runDeployment: false });
             await NotebookUtils.showMessage('Operation Failed', ['Could not compile pipeline.']);
             return;
         }
+        let msg = ["Pipeline saved successfully at " + compileNotebook.pipeline_package_path];
         if (this.state.deploymentType === 'compile') {
             await NotebookUtils.showMessage('Operation Successful', msg);
         }
 
         // UPLOAD
         if (this.state.deploymentType === 'upload') {
+            // start
+            this.updateDeployProgress(_deployIndex, { showUploadProgress: true });
             const uploadPipelineArgs: IUploadPipelineArgs = {
                 pipeline_package_path: compileNotebook.pipeline_package_path,
                 pipeline_metadata: compileNotebook.pipeline_metadata,
@@ -500,7 +581,9 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             let uploadPipeline = await this.executeRpc('kfp.upload_pipeline', uploadPipelineArgs);
             let result = true;
             if (!uploadPipeline) {
-                this.setState({runDeployment: false});
+                // stop
+                // snackbar
+                this.setState({ runDeployment: false });
                 msg = msg.concat(['Could not upload pipeline.']);
                 await NotebookUtils.showMessage('Operation Failed', msg);
                 return;
@@ -516,9 +599,15 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 if (result) {
                     uploadPipelineArgs.overwrite = true;
                     uploadPipeline = await this.executeRpc('kfp.upload_pipeline', uploadPipelineArgs);
+                } else {
+                    this.updateDeployProgress(_deployIndex, { pipeline: false });
                 }
             }
             if (uploadPipeline && result) {
+                // stop
+                // link: /_/pipeline/#/pipelines/details/<id>
+                // id = uploadPipeline.pipeline.id
+                this.updateDeployProgress(_deployIndex, { pipeline: uploadPipeline });
                 msg = msg.concat(['Pipeline with name ' + uploadPipeline.pipeline.name + ' uploaded successfully.']);
                 await NotebookUtils.showMessage('Operation Successful', msg);
             }
@@ -526,12 +615,19 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
         // RUN
         if (this.state.deploymentType === 'run') {
+            // start
+            this.updateDeployProgress(_deployIndex, { showRunProgress: true });
             const runPipelineArgs: IRunPipelineArgs = {
                 pipeline_package_path: compileNotebook.pipeline_package_path,
                 pipeline_metadata: compileNotebook.pipeline_metadata,
             };
             const runPipeline = await this.executeRpc('kfp.run_pipeline', runPipelineArgs);
             if (runPipeline) {
+                this.updateDeployProgress(_deployIndex, { runPipeline });
+                this.pollRun(_deployIndex,runPipeline);
+                // TODO: get runPipeline.status
+                // link: /_/pipeline/#/runs/details/<id>
+                // id = runPipeline.id
                 msg = msg.concat(['Pipeline run created successfully']);
                 await NotebookUtils.showMessage('Operation Successful', msg);
             } else {
@@ -540,8 +636,17 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             }
         }
         // stop deploy button icon spin
-        this.setState({runDeployment: false});
+        this.setState({ runDeployment: false });
     };
+
+    pollRun(_deployIndex:number, runPipeline:any) {
+        this.executeRpc('kfp.get_run', { run_id: runPipeline.id }).then((run)=> {
+            this.updateDeployProgress(_deployIndex, { runPipeline:run });
+            if(run && (run.status === 'Running' || run.status === null)){
+                setTimeout(()=>this.pollRun(_deployIndex,run),2000)
+            }
+        });
+    }
 
     // Execute kale.rpc module functions
     // Example: func_result = await this.executeRpc("rpc_submodule.func", {arg1, arg2})
@@ -569,7 +674,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             return null;
         }
 
-        console.log(msg.concat([output]));
+        // console.log(msg.concat([output]));
         const raw_data = output.result.data["text/plain"];
         const json_data = window.atob(raw_data.substring(1, raw_data.length-1));
 
@@ -603,7 +708,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             msg = msg.concat([
                 `Result: ${parsedResult}`
             ]);
-            console.log(msg);
+            // console.log(msg);
             return parsedResult.result;
         }
     };
@@ -672,6 +777,30 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             DefaultState.metadata.docker_image = ''
         }
     };
+
+    snapshotNotebook = async () => {
+        return await this.executeRpc("rok.snapshot_notebook");
+    }
+
+    getSnapshotProgress = async (task_id: string, ms?: number) => {
+        const task = await this.executeRpc("rok.get_task", { task_id });
+        if (ms) {
+            await this.wait(ms);
+        }
+        return task
+    }
+
+    replaceClonedVolumes = async (
+        bucket: string,
+        obj: string,
+        version: string,
+        volumes: IVolumeMetadata[]
+    ) => {
+        return await this.executeRpc(
+            "rok.replace_cloned_volumes",
+            {bucket, obj, version, volumes}
+        );
+    }
 
     render() {
 
@@ -788,15 +917,14 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                             changeDebug={this.changeDeployDebugMessage}
                         />
                     </div>
-
-                    <div className="kale-component">
-                        <SplitDeployButton
-                            running={this.state.runDeployment}
-                            handleClick={this.activateRunDeployState}
-                        />
-                    </div>
                 </div>
-
+                <div className="kale-footer">
+                    <DeploysProgress deploys={this.state.deploys} onPanelRemove={this.onPanelRemove} />
+                    <SplitDeployButton
+                        running={this.state.runDeployment}
+                        handleClick={this.activateRunDeployState}
+                    />
+                </div>
             </div>
         );
     }
