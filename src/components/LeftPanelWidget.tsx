@@ -481,14 +481,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         };
         const compileNotebook = await this.executeRpc('nb.compile_notebook', compileNotebookArgs);
         let msg = ["Pipeline saved successfully at " + compileNotebook.pipeline_package_path];
-<<<<<<< HEAD
-=======
         if (!compileNotebook) {
             this.setState({runDeployment: false});
             await NotebookUtils.showMessage('Operation Failed', ['Could not compile pipeline.']);
             return;
         }
->>>>>>> 3141303... Use RPC calls for compiling NB, upload pipeline & run pipeline
         if (this.state.deploymentType === 'compile') {
             await NotebookUtils.showMessage('Operation Successful', msg);
         }
@@ -502,15 +499,12 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             };
             let uploadPipeline = await this.executeRpc('kfp.upload_pipeline', uploadPipelineArgs);
             let result = true;
-<<<<<<< HEAD
-=======
             if (!uploadPipeline) {
                 this.setState({runDeployment: false});
                 msg = msg.concat(['Could not upload pipeline.']);
                 await NotebookUtils.showMessage('Operation Failed', msg);
                 return;
             }
->>>>>>> 3141303... Use RPC calls for compiling NB, upload pipeline & run pipeline
             if (uploadPipeline && uploadPipeline.already_exists) {
                 // show dialog to ask user if they want to overwrite the existing pipeline
                 result = await NotebookUtils.showYesNoDialog(
@@ -540,12 +534,9 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             if (runPipeline) {
                 msg = msg.concat(['Pipeline run created successfully']);
                 await NotebookUtils.showMessage('Operation Successful', msg);
-<<<<<<< HEAD
-=======
             } else {
                 msg = msg.concat(['Could not create run.']);
                 await NotebookUtils.showMessage('Operation Failed', msg);
->>>>>>> 3141303... Use RPC calls for compiling NB, upload pipeline & run pipeline
             }
         }
         // stop deploy button icon spin
