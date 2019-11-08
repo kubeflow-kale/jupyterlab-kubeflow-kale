@@ -259,7 +259,6 @@ export class CellTags extends React.Component<IProps, IState> {
         oldBlockName: string,
         newBlockName: string,
         save: boolean = true) => {
-        console.log('update kale cell tags');
         let i: number;
         for(i = 0; i < notebookPanel.model.cells.length; i++) {
             const tags: string[] = CellUtils.getCellMetaData(
@@ -267,14 +266,13 @@ export class CellTags extends React.Component<IProps, IState> {
                 i,
                 'tags'
             );
-            let newTags: string[] = tags.map(t => {
+            let newTags: string[] = (tags || []).map(t => {
                 if (t === 'prev:' + oldBlockName) {
                     return RESERVED_CELL_NAMES.includes(newBlockName) ? '' : 'prev:' + newBlockName;
                 } else {
                     return t;
                 }
             }).filter(t => t !== '' && t !== 'prev:');
-            console.log(newTags);
             CellUtils.setCellMetaData(
                 notebookPanel,
                 i,
