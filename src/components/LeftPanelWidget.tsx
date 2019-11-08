@@ -448,13 +448,16 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             // if the key exists in the notebook's metadata
             if (notebookMetadata) {
                 let experiment: IExperiment = {id: '', name: ''};
+                let experiment_name: string = '';
                 if (notebookMetadata['experiment']) {
                     experiment = {
                         id: notebookMetadata['experiment']['id'] || '',
                         name: notebookMetadata['experiment']['name'] || '',
                     };
+                    experiment_name = notebookMetadata['experiment']['name'];
                 } else if (notebookMetadata['experiment_name']) {
                     experiment = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name'])[0];
+                    experiment_name = notebookMetadata['experiment_name'];
                 }
                 let stateVolumes = (notebookMetadata['volumes'] || []).map((volume: IVolumeMetadata) => {
                     if (volume.type === 'new_pvc' && volume.annotations.length > 0 && volume.annotations[0].key === 'rok/origin') {
@@ -471,7 +474,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
                 let metadata: IKaleNotebookMetadata = {
                     experiment: experiment,
-                    experiment_name: notebookMetadata['experiment_name'] || '',
+                    experiment_name: experiment_name,
                     pipeline_name: notebookMetadata['pipeline_name'] || '',
                     pipeline_description: notebookMetadata['pipeline_description'] || '',
                     docker_image: notebookMetadata['docker_image'] || DefaultState.metadata.docker_image,
