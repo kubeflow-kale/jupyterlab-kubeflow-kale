@@ -2,6 +2,7 @@ import { Dialog, showDialog } from "@jupyterlab/apputils";
 import { NotebookPanel } from "@jupyterlab/notebook";
 import { KernelMessage } from "@jupyterlab/services";
 import { CommandRegistry } from "@phosphor/commands";
+import { Kernel } from '@jupyterlab/services';
 import * as React from "react";
 
 /** Contains utility functions for manipulating/handling notebooks in the application. */
@@ -151,9 +152,26 @@ export default class NotebookUtilities {
   }
 
   /**
+   * Get a new Kernel, not tight to a Notebook
+   * Source code here: https://github.com/jupyterlab/jupyterlab/tree/473348d25bcb258ca2f0c127dd8fb5b193217135/packages/services
+   */
+  public static async createNewKernel() {
+    // Get info about the available kernels and start a new one.
+    let options: Kernel.IOptions = await Kernel.getSpecs().then(kernelSpecs => {
+      console.log('Default spec:', kernelSpecs.default);
+      console.log('Available specs', Object.keys(kernelSpecs.kernelspecs));
+      // use the default name
+      return {name: kernelSpecs.default}
+    });
+    return await Kernel.startNew(options).then(_kernel => {
+        return _kernel
+      });
+  }
+
+  /**
    * @description This function runs code directly in the notebook's kernel and then evaluates the
    * result and returns it as a promise.
-   * @param notebookPanel The notebook to run the code in.
+   * @param kernel The kernel to run the code in.
    * @param runCode The code to run in the kernel.
    * @param userExpressions The expressions used to capture the desired info from the executed code.
    * @param runSilent Default is false. If true, kernel will execute as quietly as possible.
@@ -183,7 +201,7 @@ export default class NotebookUtilities {
    * https://jupyter-client.readthedocs.io/en/latest/messaging.html#execution-results
    */
   public static async sendKernelRequest(
-    notebookPanel: NotebookPanel,
+    kernel: Kernel.IKernelConnection,
     runCode: string,
     userExpressions: any,
     runSilent: boolean = false,
@@ -191,17 +209,7 @@ export default class NotebookUtilities {
     allowStdIn: boolean = false,
     stopOnError: boolean = false
   ): Promise<any> {
-    // Check notebook panel is ready
-    if (notebookPanel === null) {
-      throw new Error("The notebook is null or undefined.");
-    }
-
-    // Wait for kernel to be ready before sending request
-    await notebookPanel.activated;
-    await notebookPanel.session.ready;
-    await notebookPanel.session.kernel.ready;
-
-    const message: KernelMessage.IShellMessage = await notebookPanel.session.kernel.requestExecute(
+    const message: KernelMessage.IShellMessage = await kernel.requestExecute(
       {
         allow_stdin: allowStdIn,
         code: runCode,
@@ -226,5 +234,35 @@ export default class NotebookUtilities {
     }
     // Return user_expressions of the content
     return content.user_expressions;
+  }
+
+  public static async sendKernelRequestFromNotebook(
+      notebookPanel: NotebookPanel,
+      runCode: string,
+      userExpressions: any,
+      runSilent: boolean = false,
+      storeHistory: boolean = false,
+      allowStdIn: boolean = false,
+      stopOnError: boolean = false
+  ) {
+    // Check notebook panel is ready
+    if (notebookPanel === null) {
+      throw new Error("The notebook is null or undefined.");
+    }
+
+    // Wait for kernel to be ready before sending request
+    await notebookPanel.activated;
+    await notebookPanel.session.ready;
+    await notebookPanel.session.kernel.ready;
+
+    return this.sendKernelRequest(
+        notebookPanel.session.kernel,
+        runCode,
+        userExpressions,
+        runSilent,
+        storeHistory,
+        allowStdIn,
+        stopOnError
+    )
   }
 }

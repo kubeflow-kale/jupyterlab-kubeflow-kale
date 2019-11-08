@@ -17,6 +17,8 @@ import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
 import {ExperimentInput} from "./ExperimentInput";
 import { DeploysProgress, DeployProgressState } from "./deploys-progress/DeploysProgress";
+import {JupyterFrontEnd} from "@jupyterlab/application";
+import {IDocumentManager} from "@jupyterlab/docmanager";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
 
@@ -68,8 +70,10 @@ const selectVolumeTypes = [
 ];
 
 interface IProps {
+    lab: JupyterFrontEnd;
     tracker: INotebookTracker;
-    notebook: NotebookPanel
+    notebook: NotebookPanel;
+    docManager: IDocumentManager;
 }
 
 interface IState {
@@ -687,7 +691,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             + `__kale_rpc_result = __kale_rpc_run("${func}", '${window.btoa(JSON.stringify(kwargs))}')`;
         console.log("Executing command: " + cmd);
         const expressions = {result: "__kale_rpc_result"};
-        const output = await NotebookUtils.sendKernelRequest(this.state.activeNotebook, cmd, expressions);
+        const output = await NotebookUtils.sendKernelRequestFromNotebook(this.state.activeNotebook, cmd, expressions);
 
         const argsAsStr = Object.keys(kwargs).map(key => `${key}=${kwargs[key]}`).join(', ');
         let msg = [
