@@ -333,7 +333,7 @@ export class CellTags extends React.Component<IProps, IState> {
                     label={"Step Name"}
                     updateValue={this.updateCurrentBlockName}
                     value={this.state.currentActiveCellMetadata.blockName}
-                    regex={"^[_a-z]([_a-z0-9]*)?$"}
+                    regex={"^([_a-z]([_a-z0-9]*)?)?$"}
                     regexErrorMsg={"Step name must consist of lower case alphanumeric characters or '_', and can not start with a digit."}
                     helperText={prevBlockNotice}
                 />
