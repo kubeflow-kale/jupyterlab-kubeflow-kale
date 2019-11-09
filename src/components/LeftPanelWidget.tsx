@@ -578,7 +578,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         }
 
         // UPLOAD
-        if (this.state.deploymentType === 'upload') {
+        if (this.state.deploymentType === 'upload' || this.state.deploymentType === 'run') {
             // start
             this.updateDeployProgress(_deployIndex, { showUploadProgress: true });
             const uploadPipelineArgs: IUploadPipelineArgs = {
