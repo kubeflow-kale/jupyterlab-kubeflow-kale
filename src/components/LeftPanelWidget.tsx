@@ -22,24 +22,6 @@ import {IDocumentManager} from "@jupyterlab/docmanager";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
 
-enum RPC_CALL_STATUS {
-    OK = 0,
-    ImportError = 1,
-    ExecutionError = 2,
-}
-
-const getRpcStatusName = (code: number) => {
-    switch(code) {
-        case RPC_CALL_STATUS.OK:
-            return 'OK';
-        case RPC_CALL_STATUS.ImportError:
-            return 'ImportError';
-        case RPC_CALL_STATUS.ExecutionError:
-                return 'ExecutionError';
-        default:
-            return 'UnknownError';
-    }
-};
 
 export interface ISelectOption {
     label: string;
@@ -352,7 +334,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     activateRunDeployState = (type: string) =>{ 
         if(!this.state.runDeployment){
-            this.setState({runDeployment: true, deploymentType: type})
+            this.setState({runDeployment: true, deploymentType: type});
             this.runDeploymentCommand();
         }
     };
@@ -446,7 +428,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
             // Detect whether this is an exploration, i.e., recovery from snapshot
             const nbFileName = this.state.activeNotebook.context.path.split('/').pop();
-            const exploration = await this.executeRpc(
+            const exploration = await NotebookUtils.executeRpc(
+                this.state.activeNotebook,
                 'nb.explore_notebook',
                 {source_notebook_path: nbFileName}
             );
@@ -517,7 +500,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     wait = (ms:number) =>{
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    };
 
     runSnapshotProcedure = async (_deployIndex:number) => {
         const snapshot = await this.snapshotNotebook();
@@ -546,7 +529,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         }
 
         return null;
-    }
+    };
 
     updateDeployProgress = (index: number, progress: DeployProgressState) => {
         let deploy: { [index: number]: DeployProgressState };
@@ -556,13 +539,13 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             deploy = { [index]: { ...this.state.deploys[index], ...progress } };
         }
         this.setState({ deploys: { ...this.state.deploys, ...deploy } });
-    }
+    };
 
     onPanelRemove = (index: number) => {
         const deploys = { ...this.state.deploys };
         deploys[index].deleted = true;
         this.setState({ deploys });
-    }
+    };
 
     runDeploymentCommand = async () => {
         const _deployIndex = ++deployIndex;
@@ -591,7 +574,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             notebook_metadata_overrides: metadata,
             debug: this.state.deployDebugMessage,
         };
-        const compileNotebook = await this.executeRpc('nb.compile_notebook', compileNotebookArgs);
+        const compileNotebook = await NotebookUtils.executeRpc(this.state.activeNotebook, 'nb.compile_notebook', compileNotebookArgs);
         if (!compileNotebook) {
             this.setState({ runDeployment: false });
             await NotebookUtils.showMessage('Operation Failed', ['Could not compile pipeline.']);
@@ -611,7 +594,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 pipeline_metadata: compileNotebook.pipeline_metadata,
                 overwrite: false,
             };
-            let uploadPipeline = await this.executeRpc('kfp.upload_pipeline', uploadPipelineArgs);
+            let uploadPipeline = await NotebookUtils.executeRpc(this.state.activeNotebook, 'kfp.upload_pipeline', uploadPipelineArgs);
             let result = true;
             if (!uploadPipeline) {
                 // stop
@@ -631,7 +614,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 // OVERWRITE EXISTING PIPELINE
                 if (result) {
                     uploadPipelineArgs.overwrite = true;
-                    uploadPipeline = await this.executeRpc('kfp.upload_pipeline', uploadPipelineArgs);
+                    uploadPipeline = await NotebookUtils.executeRpc(this.state.activeNotebook, 'kfp.upload_pipeline', uploadPipelineArgs);
                 } else {
                     this.updateDeployProgress(_deployIndex, { pipeline: false });
                 }
@@ -656,7 +639,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 pipeline_package_path: compileNotebook.pipeline_package_path,
                 pipeline_metadata: compileNotebook.pipeline_metadata,
             };
-            const runPipeline = await this.executeRpc('kfp.run_pipeline', runPipelineArgs);
+            const runPipeline = await NotebookUtils.executeRpc(this.state.activeNotebook, 'kfp.run_pipeline', runPipelineArgs);
             if (runPipeline) {
                 this.updateDeployProgress(_deployIndex, { runPipeline });
                 this.pollRun(_deployIndex,runPipeline);
@@ -674,83 +657,19 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         this.setState({ runDeployment: false });
     };
 
-    pollRun(_deployIndex:number, runPipeline:any) {
-        this.executeRpc('kfp.get_run', { run_id: runPipeline.id }).then((run)=> {
-            this.updateDeployProgress(_deployIndex, { runPipeline:run });
-            if(run && (run.status === 'Running' || run.status === null)){
-                setTimeout(()=>this.pollRun(_deployIndex,run),2000)
-            }
-        });
+    pollRun(_deployIndex: number, runPipeline: any) {
+        NotebookUtils.executeRpc(this.state.activeNotebook, 'kfp.get_run', {run_id: runPipeline.id})
+            .then((run) => {
+                this.updateDeployProgress(_deployIndex, {runPipeline: run});
+                if (run && (run.status === 'Running' || run.status === null)) {
+                    setTimeout(() => this.pollRun(_deployIndex, run), 2000)
+                }
+            });
     }
-
-    // Execute kale.rpc module functions
-    // Example: func_result = await this.executeRpc("rpc_submodule.func", {arg1, arg2})
-    //          where func_result is a JSON object
-    executeRpc = async (func: string, kwargs: any = {}) => {
-        const cmd: string = `from kale.rpc.run import run as __kale_rpc_run\n`
-            + `__kale_rpc_result = __kale_rpc_run("${func}", '${window.btoa(JSON.stringify(kwargs))}')`;
-        console.log("Executing command: " + cmd);
-        const expressions = {result: "__kale_rpc_result"};
-        const output = await NotebookUtils.sendKernelRequestFromNotebook(this.state.activeNotebook, cmd, expressions);
-
-        const argsAsStr = Object.keys(kwargs).map(key => `${key}=${kwargs[key]}`).join(', ');
-        let msg = [
-            `Function Call: ${func}(${argsAsStr})`,
-        ];
-        // Log output
-        if (output.result.status !== "ok") {
-            const title = `Kernel failed during code execution`;
-            msg = msg.concat([
-                `Status: ${output.result.status}`,
-                `Output: ${JSON.stringify(output, null, 3)}`
-            ]);
-            console.error([title].concat(msg));
-            await NotebookUtils.showMessage(title, msg);
-            return null;
-        }
-
-        console.log(msg.concat([output]));
-        const raw_data = output.result.data["text/plain"];
-        const json_data = window.atob(raw_data.substring(1, raw_data.length-1));
-
-        // Validate response is a JSON
-        // If successful, run() method returns json.dumps() of any result
-        let parsedResult = undefined;
-        try {
-            parsedResult = JSON.parse(json_data);
-        } catch (error) {
-            const title = `Failed to parse response as JSON`;
-            msg = msg.concat([
-                `Error: ${JSON.stringify(error, null, 3)}`,
-                `Response data: ${json_data}`
-            ]);
-            console.error(msg);
-            await NotebookUtils.showMessage(title, msg);
-            return null;
-        }
-
-        if (parsedResult.status !== 0) {
-            const title = `An error has occured`;
-            msg = msg.concat([
-                `Status: ${parsedResult.status} (${getRpcStatusName(parsedResult.status)})`,
-                `Type: ${JSON.stringify(parsedResult.err_cls, null, 3)}`,
-                `Message: ${parsedResult.err_message}`
-            ]);
-            console.error(msg);
-            await NotebookUtils.showMessage(title, msg);
-            return null;
-        } else {
-            msg = msg.concat([
-                `Result: ${parsedResult}`
-            ]);
-            // console.log(msg);
-            return parsedResult.result;
-        }
-    };
 
     getExperiments = async () => {
         this.setState({gettingExperiments: true});
-        const list_experiments: IExperiment[] = await this.executeRpc("kfp.list_experiments");
+        const list_experiments: IExperiment[] = await NotebookUtils.executeRpc(this.state.activeNotebook,"kfp.list_experiments", {});
         if (list_experiments) {
             this.setState({experiments: list_experiments.concat([NEW_EXPERIMENT])});
         } else {
@@ -784,7 +703,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     };
 
     getMountedVolumes = async () => {
-        let notebookVolumes: IVolumeMetadata[] = await this.executeRpc("nb.list_volumes");
+        let notebookVolumes: IVolumeMetadata[] = await NotebookUtils.executeRpc(this.state.activeNotebook, "nb.list_volumes");
 
         if (notebookVolumes) {
             notebookVolumes = notebookVolumes.map((volume) => {
@@ -805,7 +724,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     };
 
     getBaseImage = async () => {
-        let baseImage: string = await this.executeRpc("nb.get_base_image");
+        let baseImage: string = await NotebookUtils.executeRpc(this.state.activeNotebook, "nb.get_base_image");
         if (baseImage) {
             DefaultState.metadata.docker_image = baseImage
         } else {
@@ -814,16 +733,16 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     };
 
     snapshotNotebook = async () => {
-        return await this.executeRpc("rok.snapshot_notebook");
-    }
+        return await NotebookUtils.executeRpc(this.state.activeNotebook, "rok.snapshot_notebook");
+    };
 
     getSnapshotProgress = async (task_id: string, ms?: number) => {
-        const task = await this.executeRpc("rok.get_task", { task_id });
+        const task = await NotebookUtils.executeRpc(this.state.activeNotebook, "rok.get_task", {task_id});
         if (ms) {
             await this.wait(ms);
         }
         return task
-    }
+    };
 
     replaceClonedVolumes = async (
         bucket: string,
@@ -831,18 +750,19 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         version: string,
         volumes: IVolumeMetadata[]
     ) => {
-        return await this.executeRpc(
+        return await NotebookUtils.executeRpc(
+            this.state.activeNotebook,
             "rok.replace_cloned_volumes",
             {bucket, obj, version, volumes}
         );
-    }
+    };
 
     unmarshalData = async (nbFileName: string) => {
         const cmd: string = `from kale.rpc.nb import unmarshal_data as __kale_rpc_unmarshal_data\n`
             + `locals().update(__kale_rpc_unmarshal_data("${nbFileName}"))`;
         console.log("Executing command: " + cmd);
-        await NotebookUtils.sendKernelRequest(this.state.activeNotebook, cmd, {});
-    }
+        await NotebookUtils.sendKernelRequestFromNotebook(this.state.activeNotebook, cmd, {});
+    };
 
     getCellByStepName = (notebook: NotebookPanel, stepName: string): {cell: Cell; index: number} => {
         for(let i = 0; i < notebook.model.cells.length; i++) {

@@ -8,7 +8,7 @@ import {
 } from "@jupyterlab/application";
 
 import {
-    INotebookTracker, NotebookPanel
+    INotebookTracker
 } from '@jupyterlab/notebook';
 
 import {
@@ -46,7 +46,7 @@ export default {
     requires: [ILabShell, ILayoutRestorer, INotebookTracker, IDocumentManager],
     provides: IKubeflowKale,
     autoStart: true
-} as JupyterFrontEndPlugin<IKubeflowKale>;
+} as JupyterFrontEndPlugin<void>;
 
 
 async function activate(
@@ -55,29 +55,36 @@ async function activate(
     restorer: ILayoutRestorer,
     tracker: INotebookTracker,
     docManager: IDocumentManager,
-): Promise<IKubeflowKale> {
+) {
 
     let widget: ReactWidget;
 
-    async function load_notebook() {
+    async function load_panel() {
+        // Check if NOTEBOOK_PATH env variable exists and if so load
+        // that Notebook
         let k = await NotebookUtils.createNewKernel();
-        const cmd: string = `import os\n`
-            + `home=os.environ.get("NOTEBOOK_PATH")`;
-        console.log("Executing command: " + cmd);
-        const expressions = {result: "home"};
-        const output = await NotebookUtils.sendKernelRequest(k, cmd, expressions);
-        const notebookPath = output.result['data']['text/plain'];
-        if (notebookPath !== 'None') {
-            console.log("Resuming notebook " + notebookPath);
+        const path = await NotebookUtils.executeRpc(k, "nb.resume_notebook_path");
+
+        let reveal_widget = undefined;
+        if (path) {
+            console.log("Resuming notebook " + path);
             // open the notebook panel
-            docManager.openOrReveal(notebookPath);
+            reveal_widget = await docManager.openOrReveal(path);
+        }
+
+        // add widget
+        if (!widget.isAttached) {
+            await labShell.add(widget, "left");
+        }
+        // open widget if resuming from a notebook
+        if (reveal_widget) {
+            // open kale panel
+            widget.activate()
         }
     }
 
     // Creates the left side bar widget once the app has fully started
     lab.started.then(() => {
-        // show list of commands in the commandRegistry
-        // console.log(lab.commands.listCommands());
         widget = ReactWidget.create(
             <KubeflowKaleLeftPanel
                 lab={lab}
@@ -96,11 +103,6 @@ async function activate(
     // Initialize once the application shell has been restored
     // and all the widgets have been added to the NotebookTracker
     lab.restored.then(() => {
-        load_notebook();
-        if (!widget.isAttached) {
-                labShell.add(widget, "left");
-            }
+        load_panel();
     });
-
-    return {widget};
 }
