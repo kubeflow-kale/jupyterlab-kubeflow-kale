@@ -10,7 +10,7 @@ interface InlineMetadata {
     cellElement: any;
 }
 
-const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip'];
+const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip','new cell'];
 
 export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) => {
     let wrapperRef: HTMLElement = null;
@@ -35,7 +35,7 @@ export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) =
         }))
         const elem = wrapperRef
 
-        if (RESERVED_CELL_NAMES.includes('props.blockName')) {
+        if (RESERVED_CELL_NAMES.includes(props.blockName)) {
             setCellTypeClass('kale-reserved-cell')
         }
         if ((props.blockName || props.parentBlockName) && elem && !elem.classList.contains('moved')) {

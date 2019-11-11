@@ -39,13 +39,6 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
     };
 
     componentDidUpdate = async (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
-        // TODO: find a better way to update
-        if (prevProps.activeCellIndex !== this.props.activeCellIndex) {
-            if (this.state.checked) {
-                this.addMetadataInfo()
-            }
-        }
-
         if (this.props.notebook && !prevProps.notebook) {
             console.log('new notebook');
             this.setState({ checked: false });
@@ -63,9 +56,11 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
             if (prevProps.notebook) {
                 prevProps.notebook.context.saveState.disconnect
                     (this.handleSaveState);
+                prevProps.notebook.model.cells.changed.disconnect(this.handleCellChange);
             }
             if (this.props.notebook) {
                 this.props.notebook.context.saveState.connect(this.handleSaveState);
+                this.props.notebook.model.cells.changed.connect(this.handleCellChange);
             }
             console.log('notebook changed');
             // TODO: Find a way to detect that the notebook is rendered and then
@@ -85,6 +80,14 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         }
     }
 
+    handleCellChange = (cells: any, args: any) => {
+        if (args.type === 'add' || args.type === 'remove') {
+            if (this.state.checked) {
+                this.addMetadataInfo()
+            }
+        }
+    }
+
     addMetadataInfo = () => {
 
         if (!this.props.notebook) {
@@ -96,13 +99,16 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         const metadata: any[] = []
         const editors: any[] = []
         for (let index = 0; index < cells.length; index++) {
-            const tags = this.getKaleCellTags(this.props.notebook.content, index);
+            let tags = this.getKaleCellTags(this.props.notebook.content, index);
+            if (!tags) {
+                tags = {
+                    blockName: '',
+                    prevBlockNames: []
+                }
+            }
             allTags.push(tags);
             let parentBlockName;
 
-            if (!tags) {
-                continue;
-            }
 
             if (!tags.blockName) {
                 parentBlockName = this.getPreviousBlock(this.props.notebook.content, index);
