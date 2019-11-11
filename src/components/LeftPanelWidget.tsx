@@ -638,7 +638,9 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 // id = uploadPipeline.pipeline.id
                 this.updateDeployProgress(_deployIndex, { pipeline: uploadPipeline });
                 msg = msg.concat(['Pipeline with name ' + uploadPipeline.pipeline.name + ' uploaded successfully.']);
-                await NotebookUtils.showMessage('Operation Successful', msg);
+                if (this.state.deploymentType === 'upload') {
+                    await NotebookUtils.showMessage('Operation Successful', msg);
+                }
             }
         }
 
