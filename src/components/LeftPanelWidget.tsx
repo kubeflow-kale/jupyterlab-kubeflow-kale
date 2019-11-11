@@ -12,6 +12,7 @@ import {
     MaterialInput
 } from "./Components";
 import {CellTags} from "./CellTags";
+import { InlineCellsMetadata } from "./cell-metadata/InlineCellMetadata";
 import {Cell} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
@@ -74,7 +75,8 @@ interface IState {
     selectVolumeTypes: {label: string, value: string}[];
     useNotebookVolumes: boolean;
     mounted: boolean;
-    deploys :{ [index:number]:DeployProgressState};
+    deploys: { [index: number]: DeployProgressState };
+    isEnabled: boolean;
 }
 
 export interface IAnnotation {
@@ -151,6 +153,7 @@ const DefaultState: IState = {
     useNotebookVolumes: true,
     mounted: false,
     deploys: {},
+    isEnabled: false,
 };
 
 let deployIndex = 0;
@@ -764,8 +767,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         await NotebookUtils.sendKernelRequestFromNotebook(this.state.activeNotebook, cmd, {});
     };
 
-    getCellByStepName = (notebook: NotebookPanel, stepName: string): {cell: Cell; index: number} => {
-        for(let i = 0; i < notebook.model.cells.length; i++) {
+    getCellByStepName = (notebook: NotebookPanel, stepName: string): { cell: Cell; index: number } => {
+        for (let i = 0; i < notebook.model.cells.length; i++) {
             const tags: string[] = CellUtils.getCellMetaData(
                 notebook.content,
                 i,
@@ -773,9 +776,13 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             );
             const name = (tags || []).filter(t => t !== '' && !t.startsWith('prev:'))[0];
             if (name === stepName) {
-                return {cell: notebook.content.widgets[i], index: i};
+                return { cell: notebook.content.widgets[i], index: i };
             }
         }
+    }
+
+    onMetadataEnable = (isEnabled: boolean) => {
+        this.setState({ isEnabled });
     }
 
     render() {
@@ -853,13 +860,21 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 <div className={"kubeflow-widget-content"}>
 
                     <div>
-                        <p style={{fontSize: "var(--jp-ui-font-size2)" }}
-                           className="kale-header">
-                            Kale  Deployment  Panel
+                        <p style={{ fontSize: "var(--jp-ui-font-size2)" }}
+                            className="kale-header">
+                            Kale  Deployment  Panel {this.state.isEnabled}
                         </p>
                     </div>
 
                     <div className="kale-component">
+                        <InlineCellsMetadata
+                            onMetadataEnable={this.onMetadataEnable}
+                            notebook={this.state.activeNotebook}
+                            activeCellIndex={this.state.activeCellIndex}
+                        />
+                    </div>
+
+                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}>
                         <div>
                             <p className="kale-header">Pipeline Metadata</p>
                         </div>
@@ -873,18 +888,20 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
 
                     {/*  CELLTAGS PANEL  */}
-                    <div className="kale-component">
-                        <CellTags
+                    {/* <div className="kale-component"> */}
+                    {/* <CellTags
                             notebook={this.state.activeNotebook}
                             activeCellIndex={this.state.activeCellIndex}
                             activeCell={this.state.activeCell}
-                        />
-                        {/*  --------------  */}
+                        /> */}
+                    {/*  --------------  */}
+                    {/* </div> */}
+
+                    <div className={this.state.isEnabled ? '' : 'hidden'}>
+                        {volsPanel}
                     </div>
 
-                    {volsPanel}
-
-                    <div className="kale-component">
+                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}>
                         <CollapsablePanel
                             title={"Advanced Settings"}
                             dockerImageValue={this.state.metadata.docker_image}
@@ -894,7 +911,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         />
                     </div>
                 </div>
-                <div className="kale-footer">
+                <div className={this.state.isEnabled ? '' : 'hidden'}>
                     <DeploysProgress deploys={this.state.deploys} onPanelRemove={this.onPanelRemove} />
                     <SplitDeployButton
                         running={this.state.runDeployment}

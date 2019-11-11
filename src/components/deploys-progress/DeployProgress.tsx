@@ -3,9 +3,58 @@ import { LinearProgress, CircularProgress } from "@material-ui/core";
 import CloseIcon from '@material-ui/icons/Close';
 import LinkIcon from '@material-ui/icons/Link';
 import LaunchIcon from '@material-ui/icons/Launch';
+import ErrorIcon from '@material-ui/icons/Error';
+import UnknownIcon from '@material-ui/icons/Help';
+import PendingIcon from '@material-ui/icons/Schedule';
+import SkippedIcon from '@material-ui/icons/SkipNext';
+import SuccessIcon from '@material-ui/icons/CheckCircle';
 
+
+import StatusRunning from '../../icons/statusRunning';
+import TerminatedIcon from '../../icons/statusTerminated';
 import { DeployProgressState } from './DeploysProgress';
 
+// From kubeflow/pipelines repo
+enum PipelineStatus {
+    ERROR = 'Error',
+    FAILED = 'Failed',
+    PENDING = 'Pending',
+    RUNNING = 'Running',
+    SKIPPED = 'Skipped',
+    SUCCEEDED = 'Succeeded',
+    TERMINATING = 'Terminating',
+    TERMINATED = 'Terminated',
+    UNKNOWN = 'Unknown',
+}
+
+// From kubeflow/pipelines repo
+const color = {
+    activeBg: '#eaf1fd',
+    alert: '#f9ab00', // Google yellow 600
+    background: '#fff',
+    blue: '#4285f4', // Google blue 500
+    disabledBg: '#ddd',
+    divider: '#e0e0e0',
+    errorBg: '#fbe9e7',
+    errorText: '#d50000',
+    foreground: '#000',
+    graphBg: '#f2f2f2',
+    grey: '#5f6368', // Google grey 500
+    inactive: '#5f6368',
+    lightGrey: '#eee', // Google grey 200
+    lowContrast: '#80868b', // Google grey 600
+    secondaryText: 'rgba(0, 0, 0, .88)',
+    separator: '#e8e8e8',
+    strong: '#202124', // Google grey 900
+    success: '#34a853',
+    successWeak: '#e6f4ea', // Google green 50
+    terminated: '#80868b',
+    theme: '#1a73e8',
+    themeDarker: '#0b59dc',
+    warningBg: '#f9f9e1',
+    warningText: '#ee8100',
+    weak: '#9aa0a6',
+};
 
 interface DeployProgress extends DeployProgressState {
     onRemove?: () => void;
@@ -37,7 +86,6 @@ export const DeployProgress: React.FunctionComponent<DeployProgress> = (props) =
         return `${window.location.origin}/_/pipeline/#/runs/details/${pipeline.id}`
     }
 
-
     const getRunText = (pipeline: any) => {
         switch (pipeline.status) {
             case null:
@@ -49,6 +97,67 @@ export const DeployProgress: React.FunctionComponent<DeployProgress> = (props) =
             default:
                 return 'Done';
         }
+    }
+
+
+
+    const getRunComponent = (pipeline: any) => {
+        let title = 'Unknown status';
+        let IconComponent: any = UnknownIcon;
+        let iconColor = '#5f6368'
+
+        switch (pipeline.status) {
+            case PipelineStatus.ERROR:
+                IconComponent = ErrorIcon;
+                iconColor = color.errorText;
+                // title = 'Error';
+                break;
+            case PipelineStatus.FAILED:
+                IconComponent = ErrorIcon;
+                iconColor = color.errorText;
+                // title = 'Failed';
+                break;
+            case PipelineStatus.PENDING:
+                IconComponent = PendingIcon;
+                iconColor = color.weak;
+                // title = 'Pendig';
+                break;
+            case PipelineStatus.RUNNING:
+                IconComponent = StatusRunning;
+                iconColor = color.blue;
+                // title = 'Running';
+                break;
+            case PipelineStatus.TERMINATING:
+                IconComponent = StatusRunning;
+                iconColor = color.blue;
+                // title = 'Terminating';
+                break;
+            case PipelineStatus.SKIPPED:
+                IconComponent = SkippedIcon;
+                // title = 'Skipped';
+                break;
+            case PipelineStatus.SUCCEEDED:
+                IconComponent = SuccessIcon;
+                iconColor = color.success;
+                // title = 'Succeeded';
+                break;
+            case PipelineStatus.TERMINATED:
+                IconComponent = TerminatedIcon;
+                iconColor = color.terminated;
+                // title = 'Terminated';
+                break;
+            case PipelineStatus.UNKNOWN:
+                break;
+            default:
+                console.error('pipeline status:', pipeline.status);
+        }
+
+        return (
+            <React.Fragment>
+                {getRunText(pipeline)}
+                <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
+            </React.Fragment>
+        )
     }
 
     let snapshotTpl;
@@ -92,8 +201,7 @@ export const DeployProgress: React.FunctionComponent<DeployProgress> = (props) =
         runTpl =
             <React.Fragment>
                 <a href={getRunLink(props.runPipeline)} target="_blank" rel="noopener noreferrer">
-                    {getRunText(props.runPipeline)}
-                    <LaunchIcon style={{ fontSize: "1rem" }} />
+                    {getRunComponent(props.runPipeline)}
                 </a>
             </React.Fragment>
     } else {

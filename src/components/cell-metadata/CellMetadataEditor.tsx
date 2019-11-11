@@ -1,8 +1,12 @@
 import * as React from "react";
-import {Notebook, NotebookPanel} from "@jupyterlab/notebook";
-import {MaterialInput, MaterialSelect, MaterialSelectMulti} from "./Components";
-import CellUtils from "../utils/CellUtils";
-import {ICellModel, Cell, isCodeCellModel} from "@jupyterlab/cells";
+import { Notebook, NotebookPanel } from "@jupyterlab/notebook";
+import { MaterialInput, MaterialSelect, MaterialSelectMulti } from "../Components";
+import CellUtils from "../../utils/CellUtils";
+import { ICellModel, isCodeCellModel, CellModel } from "@jupyterlab/cells";
+import { findDOMNode } from 'react-dom';
+import EditIcon from '@material-ui/icons/Edit';
+import CloseIcon from '@material-ui/icons/Close';
+import ColorUtils from './ColorUtils';
 
 const KUBEFLOW_CELL_METADATA_KEY = 'kubeflow_cell';
 
@@ -15,7 +19,7 @@ const CELL_TYPES = [
 ];
 
 const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip'];
-const RESERVED_CELL_NAMES_HELP_TEXT :{ [id: string] : string; } = {
+const RESERVED_CELL_NAMES_HELP_TEXT: { [id: string]: string; } = {
     "imports": "The code in this cell will be pre-pended to every step of the pipeline.",
     "functions": "The code in this cell will be pre-pended to every step of the pipeline, after `imports`.",
     "pipeline-parameters": "The variables in this cell will be transformed into pipeline parameters, preserving the current values as defaults.",
@@ -24,15 +28,18 @@ const RESERVED_CELL_NAMES_HELP_TEXT :{ [id: string] : string; } = {
 
 interface IProps {
     notebook: NotebookPanel;
-    activeCell: Cell;
     activeCellIndex: number;
+    cellModel: ICellModel;
+    stepName?: string;
 }
- 
+
 interface IState {
     show: boolean;
+    showEditor: boolean;
     currentActiveCellMetadata: IKaleCellMetadata;
     allBlocks?: string[];
     prevBlockName?: string;
+    wrapperClass?: string;
 }
 
 interface IKaleCellMetadata {
@@ -46,20 +53,32 @@ const DefaultCellMetadata: IKaleCellMetadata = {
 };
 
 const DefaultState: IState = {
-    show: false,
+    show: true,
+    showEditor: false,
     allBlocks: [],
     currentActiveCellMetadata: DefaultCellMetadata,
     prevBlockName: null,
+    wrapperClass: '',
 };
 
-export class CellTags extends React.Component<IProps, IState> {
-    // TODO: Add function in constructor that initiates to the current active cell
-    //   (when notebook opened - or on focus event)
-
-    // TODO: Add listener to cell type changed to hide/show panel when a cell changes type
-
-    // init state default values
+export class CellMetadataEditor extends React.Component<IProps, IState> {
     state = DefaultState;
+
+    componentDidMount() {
+        if (this.props.cellModel && isCodeCellModel(this.props.cellModel)) {
+            this.updateClassName()
+            this.readAndShowMetadata();
+            this.moveEditor();
+        }
+    };
+
+    componentWillUnmount() {
+        const editor = document.querySelector(`.kale-metadata-editor-wrapper-${this.props.activeCellIndex}`)
+        // findDOMNode is null here
+        if (editor) {
+            editor.remove();
+        }
+    }
 
     updateCurrentCellType = async (value: string) => {
         if (RESERVED_CELL_NAMES.includes(value)) {
@@ -67,48 +86,30 @@ export class CellTags extends React.Component<IProps, IState> {
         } else {
             await this.updateCurrentBlockName('');
             await this.updatePrevBlocksNames([]);
-            await this.setState({prevBlockName: this.getPreviousBlock(this.props.notebook.content, this.props.activeCellIndex)})
+            await this.setState({ prevBlockName: this.getPreviousBlock(this.props.notebook.content, this.props.activeCellIndex) })
         }
     };
 
-    componentDidMount = () => {
-        if (this.props.activeCellIndex) {
-            if (isCodeCellModel(this.props.notebook.content.model.cells.get(this.props.activeCellIndex))) {
-                this.readAndShowMetadata();
-            }
+    moveEditor() {
+        // https://stackoverflow.com/questions/43435881/should-i-use-ref-or-finddomnode-to-get-react-root-dom-node-of-an-element
+        // https://reactjs.org/docs/react-dom.html#finddomnode
+        // https://medium.com/trabe/getting-rid-of-finddomnode-method-in-your-react-application-a0d7093b2660
+
+        const metadataWrapper = this.props.notebook.content.node.childNodes[this.props.activeCellIndex] as HTMLElement;
+        const editor = findDOMNode(this).firstChild as Element
+        if (metadataWrapper && editor && !editor.classList.contains('moved')) {
+            editor.classList.add('moved');
+            metadataWrapper.insertAdjacentElement('afterbegin', editor);
         }
-    };
+    }
 
     componentDidUpdate = async (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
-        if (prevProps.activeCellIndex !== this.props.activeCellIndex || prevProps.activeCell !== this.props.activeCell) {
-            // listen to cell type changes
-            if (prevProps.activeCell) {
-                prevProps.activeCell.model.contentChanged.disconnect(this.listenCellContentChanged)
-            }
-            // TODO: Listen to cell type change (code, markdown, raw)
-            //   - stateChanged signal: That is fired only in a few specific circumstances,
-            //  like when the trusted or readonly state changes
-            //   - contentChange: this is wat we *would* expect to work EXCEPT in this instance.
-            //      This is because they internally implement changing a cell type by removing the
-            //      old cell and inserting a new one with the same text content.
-            //      So you can’t listen to change signals on the old one as it is not really the same cell.
-            //  Possible solution:
-            //    1. Listen to the model.cells.changed signal.
-            //    2. If a cell is deleted, cache the text content and type of the cell.
-            //    3. If a cell is subsequently inserted, check to see if it is a new cell
-            //       type with the same text content. That is your changed cell.
-            //    4. If there is any other action, clear the cache.
-            this.props.activeCell.model.contentChanged.connect(this.listenCellContentChanged);
-
-            // if the active cell is not of type `code`, then hide panel
-            if (!isCodeCellModel(this.props.notebook.content.model.cells.get(this.props.activeCellIndex))) {
-                this.setState({show: false});
-                return
-            }
-
-            this.readAndShowMetadata();
-        }
     };
+
+    updateClassName = () => {
+        let c = `kale-metadata-editor-wrapper kale-metadata-editor-wrapper-${this.props.activeCellIndex}`;
+        this.setState({ wrapperClass: c })
+    }
 
     readAndShowMetadata = () => {
         // 1. Read metadata from the active cell
@@ -116,10 +117,6 @@ export class CellTags extends React.Component<IProps, IState> {
             this.props.notebook.content,
             this.props.activeCellIndex,
             KUBEFLOW_CELL_METADATA_KEY);
-
-        // 2. Get all blocks currently defined in the notebook
-        // TODO: This could be run on parent component when new notebook is opened and passed as property.
-        //  Then kept updated as metadata change
         const allBlocks = this.getAllBlocks(this.props.notebook.content);
         const prevBlockName = this.getPreviousBlock(this.props.notebook.content, this.props.activeCellIndex);
 
@@ -143,11 +140,6 @@ export class CellTags extends React.Component<IProps, IState> {
         }
     };
 
-    listenCellContentChanged = (model: ICellModel) => {
-        // console.log("listenCellContentChanged activated");
-        // console.log(model)
-    };
-
     getPreviousBlock = (notebook: Notebook, current: number): string => {
         for (let i = current - 1; i >= 0; i--) {
             let mt = this.getKaleCellTags(notebook, i, KUBEFLOW_CELL_METADATA_KEY);
@@ -158,7 +150,6 @@ export class CellTags extends React.Component<IProps, IState> {
         return null
     };
 
-    // TODO: This is executing at every render.
     getAllBlocks = (notebook: Notebook): string[] => {
         let blocks = new Set<string>();
         for (const idx of Array(notebook.model.cells.length).keys()) {
@@ -172,8 +163,8 @@ export class CellTags extends React.Component<IProps, IState> {
 
     updateCurrentBlockName = async (value: string) => {
         const oldBlockName: string = this.state.currentActiveCellMetadata.blockName;
-        let currentCellMetadata = {...this.state.currentActiveCellMetadata, blockName: value};
-        await this.setState({currentActiveCellMetadata: currentCellMetadata});
+        let currentCellMetadata = { ...this.state.currentActiveCellMetadata, blockName: value };
+        await this.setState({ currentActiveCellMetadata: currentCellMetadata });
         this.setKaleCellTags(
             this.props.notebook,
             this.props.activeCellIndex,
@@ -189,8 +180,8 @@ export class CellTags extends React.Component<IProps, IState> {
     };
 
     updatePrevBlocksNames = async (previousBlocks: string[]) => {
-        let currentCellMetadata = {...this.state.currentActiveCellMetadata, prevBlockNames: previousBlocks};
-        await this.setState({currentActiveCellMetadata: currentCellMetadata});
+        let currentCellMetadata = { ...this.state.currentActiveCellMetadata, prevBlockNames: previousBlocks };
+        await this.setState({ currentActiveCellMetadata: currentCellMetadata });
         this.setKaleCellTags(
             this.props.notebook,
             this.props.activeCellIndex,
@@ -219,8 +210,8 @@ export class CellTags extends React.Component<IProps, IState> {
                 }
             });
 
-            let prevs = tags.filter(v => {return v.startsWith('prev:')})
-                .map(v => {return v.replace("prev:", '')});
+            let prevs = tags.filter(v => { return v.startsWith('prev:') })
+                .map(v => { return v.replace("prev:", '') });
             return {
                 blockName: b_name[0],
                 prevBlockNames: prevs
@@ -245,6 +236,7 @@ export class CellTags extends React.Component<IProps, IState> {
         console.log(nb);
         const tags = [nb].concat(value.prevBlockNames.map(v => 'prev:' + v));
         console.log(tags);
+        console.warn('setKaleCellTags');
         CellUtils.setCellMetaData(
             notebookPanel,
             index,
@@ -257,10 +249,9 @@ export class CellTags extends React.Component<IProps, IState> {
     updateKaleCellTags = (
         notebookPanel: NotebookPanel,
         oldBlockName: string,
-        newBlockName: string,
-        save: boolean = true) => {
+        newBlockName: string) => {
         let i: number;
-        for(i = 0; i < notebookPanel.model.cells.length; i++) {
+        for (i = 0; i < notebookPanel.model.cells.length; i++) {
             const tags: string[] = CellUtils.getCellMetaData(
                 notebookPanel.content,
                 i,
@@ -273,35 +264,44 @@ export class CellTags extends React.Component<IProps, IState> {
                     return t;
                 }
             }).filter(t => t !== '' && t !== 'prev:');
+            console.warn('updateKaleCellTags');
             CellUtils.setCellMetaData(
                 notebookPanel,
                 i,
                 'tags',
                 newTags,
-                save
+                false
             )
         }
+        notebookPanel.context.save();
     };
 
+    toggleEditor() {
+        this.setState({ showEditor: !this.state.showEditor });
+    }
+
+    getColor(name: string) {
+        return ColorUtils.getColor(name);
+    }
+
     render() {
-        const headerName = 'Cell Metadata';
-        const headerBlock = <p className="kale-header">{ headerName }</p>;
         const previousBlockChoices = this.state.allBlocks.filter(
-                ( el ) => !RESERVED_CELL_NAMES.includes( el ) &&
-                !(el === this.state.currentActiveCellMetadata.blockName) );
+            (el) => !RESERVED_CELL_NAMES.includes(el) &&
+                !(el === this.state.currentActiveCellMetadata.blockName));
 
         // if the active cell is not of type `code`
         if (!this.state.show) {
             return (
                 <React.Fragment>
-                    {headerBlock}
-                    <div className="input-container">
-                        No active code cell
+                    <div>
+                        <div className={this.state.wrapperClass}>
+                            No active code cell
+                        </div>
                     </div>
                 </React.Fragment>)
         }
 
-        const cellType = (RESERVED_CELL_NAMES.includes(this.state.currentActiveCellMetadata.blockName))?
+        const cellType = (RESERVED_CELL_NAMES.includes(this.state.currentActiveCellMetadata.blockName)) ?
             this.state.currentActiveCellMetadata.blockName : "step";
         const cellTypeHelperText = RESERVED_CELL_NAMES_HELP_TEXT[this.state.currentActiveCellMetadata.blockName] || null;
         const cellTypeSelect =
@@ -311,15 +311,25 @@ export class CellTags extends React.Component<IProps, IState> {
                 value={cellType}
                 label={"Select Cell Type"}
                 index={0}
+                variant="standard"
                 helperText={cellTypeHelperText}
             />;
 
         if (this.state.currentActiveCellMetadata.blockName === 'skip') {
             return (
                 <React.Fragment>
-                    {headerBlock}
-                    <div className='input-container'>
-                        { cellTypeSelect }
+                    <div>
+                        <div className={this.state.wrapperClass + (this.state.showEditor ? ' opened' : '')}>
+                            <button className="kale-editor-toggle" onClick={() => this.toggleEditor()}>
+                                {(this.state.showEditor ? <CloseIcon /> : <EditIcon />)}
+                            </button>
+                            <div
+                                className={'kale-cell-metadata-editor' + (this.state.showEditor ? '' : ' hidden')}
+                                style={{ border: `2px solid #${this.getColor(this.props.stepName)}` }}>
+                                {/* <div className='input-container'> */}
+                                {cellTypeSelect}
+                            </div>
+                        </div>
                     </div>
                 </React.Fragment>)
         }
@@ -336,22 +346,30 @@ export class CellTags extends React.Component<IProps, IState> {
                     regex={"^([_a-z]([_a-z0-9]*)?)?$"}
                     regexErrorMsg={"Step name must consist of lower case alphanumeric characters or '_', and can not start with a digit."}
                     helperText={prevBlockNotice}
+                    variant="standard"
                 />
 
                 <MaterialSelectMulti
                     updateSelected={this.updatePrevBlocksNames}
                     options={previousBlockChoices}
-                    selected={this.state.currentActiveCellMetadata.prevBlockNames}/>
+                    variant="standard"
+                    selected={this.state.currentActiveCellMetadata.prevBlockNames} />
             </React.Fragment> : null;
 
         return (
             <React.Fragment>
-                { headerBlock }
-
-                <div className='input-container'>
-
-                    { cellTypeSelect }
-                    { stepCellInputs }
+                <div>
+                    <div className={this.state.wrapperClass + (this.state.showEditor ? ' opened' : '')}>
+                        <button className="kale-editor-toggle" onClick={() => this.toggleEditor()}>
+                            {(this.state.showEditor ? <CloseIcon /> : <EditIcon />)}
+                        </button>
+                        <div
+                            className={'kale-cell-metadata-editor' + (this.state.showEditor ? '' : ' hidden')}
+                            style={{ border: `2px solid #${this.getColor(this.props.stepName)}` }}>
+                            {cellTypeSelect}
+                            {stepCellInputs}
+                        </div>
+                    </div>
                 </div>
             </React.Fragment>
         )

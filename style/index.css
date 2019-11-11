@@ -348,3 +348,98 @@ a {
     border-bottom:none;
     margin-bottom: 6px;
 }
+
+.inline-cell-metadata {
+  /* FIXME: find a way to calculate margin */
+  margin-left: 73px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.inline-cell-dep {
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.inline-cell-metadata-name {
+  color: #fff;
+  border-radius: 16px;
+  padding: 2px 12px;
+  display: inline-block;
+}
+
+/* .jp-Notebook .jp-Cell.with-cell-metadata {
+  padding-bottom: 0;
+  padding-top: 0;
+} */
+
+.jp-Notebook .jp-Cell.kale-merged-cell {
+  padding-top: 0;
+}
+
+.kale-metadata-editor-wrapper {
+  margin-left: 73px;
+  position: relative;
+}
+
+.kale-editor-toggle {
+  border: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  cursor:pointer;
+  position: absolute;
+  z-index: 3;
+  right: 3px;
+  top: 3px;
+  color:var(--jp-inverse-layout-color3);
+}
+
+
+.kale-editor-toggle > svg {
+  width:100%;
+  height: auto;
+  background-color: var(--jp-cell-editor-background);
+}
+
+.jp-Notebook .jp-Cell.jp-mod-selected .kale-editor-toggle > svg {
+  background-color: #fff;
+}
+
+/* .kale-metadata-editor{
+  position: absolute;
+  z-index: 9999;
+  background-color: #fff;
+  padding: 10px;
+  -webkit-box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
+  box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
+  right: 4px;
+  top: 4px;
+} */
+
+.kale-cell-metadata-editor {
+  padding: 4px;
+  margin-bottom: 6px;
+}
+
+.kale-metadata-editor-wrapper.opened .kale-editor-toggle{
+  position: relative;
+  float: right;
+  top: 4px;
+}
+
+.kale-metadata-editor-wrapper.opened .kale-editor-toggle > svg{
+  background-color: #fff;
+}
+
+.kale-editor-toggle:hover > svg{
+  background-color: var(--jp-layout-color2);
+}
+
+.kale-reserved-cell {
+  font-style: italic;
+}
