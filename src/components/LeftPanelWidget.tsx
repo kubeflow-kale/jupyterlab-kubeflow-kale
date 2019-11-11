@@ -559,7 +559,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             return;
         }
 
-        const metadata = this.state.metadata;
+        const metadata = JSON.parse(JSON.stringify(this.state.metadata)); // Deepcopy metadata
         metadata.volumes = await this.replaceClonedVolumes(
             task.bucket,
             task.result.event.object,
