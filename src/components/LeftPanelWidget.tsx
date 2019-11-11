@@ -21,7 +21,7 @@ import { DeploysProgress, DeployProgressState } from "./deploys-progress/Deploys
 import {JupyterFrontEnd} from "@jupyterlab/application";
 import {IDocumentManager} from "@jupyterlab/docmanager";
 
-const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_noteobok';
+const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_notebook';
 
 
 export interface ISelectOption {
