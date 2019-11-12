@@ -18,12 +18,21 @@ import { DeploysProgress, DeployProgressState } from "./deploys-progress/Deploys
 import {JupyterFrontEnd} from "@jupyterlab/application";
 import {IDocumentManager} from "@jupyterlab/docmanager";
 import { KernelMessage } from "@jupyterlab/services";
+import { RESERVED_CELL_NAMES } from "./cell-metadata/CellMetadataEditor";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_notebook';
 
 enum RUN_CELL_STATUS {
     OK = 'ok',
     ERROR = 'error',
+}
+
+interface IRunCellResponse {
+    status: string,
+    cellType?: string,
+    cellIndex?: number,
+    ename?: string,
+    evalue?: string,
 }
 
 export interface ISelectOption {
@@ -450,26 +459,24 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 );
                 if (exploration && exploration.is_exploration) {
                     this.clearCellOutputs(this.state.activeNotebook);
-                    let runCellResponse = await this.runImports(this.state.activeNotebook);
+                    let runCellResponse = await this.runGlobalCells(this.state.activeNotebook);
                     if (runCellResponse.status === RUN_CELL_STATUS.OK) {
-                        runCellResponse = await this.declareFunctions(this.state.activeNotebook);
-                        if (runCellResponse.status === RUN_CELL_STATUS.OK) {
-                            runCellResponse = await this.declareParameters(this.state.activeNotebook);
-                            if (runCellResponse.status === RUN_CELL_STATUS.OK) {
-                                await this.unmarshalData(nbFileName);
-                                const cell = this.getCellByStepName(this.state.activeNotebook, exploration.step_name);
-                                this.selectAndScrollToCell(this.state.activeNotebook, cell);
-                                await NotebookUtils.showMessage(
-                                    'Successful Notebook Exploration',
-                                    [`You are now ready to explore the step: "${exploration.step_name}"`]
-                                );
-                            }
-                        }
-                    }
-                    if (runCellResponse.status === RUN_CELL_STATUS.ERROR) {
+                        await this.unmarshalData(nbFileName);
+                        const cell = this.getCellByStepName(this.state.activeNotebook, exploration.step_name);
+                        this.selectAndScrollToCell(this.state.activeNotebook, cell);
                         await NotebookUtils.showMessage(
-                            'Unsuccessful Notebook Exploration',
-                            runCellResponse.msg,
+                            'Notebook Exploration',
+                            [`Resuming notebook at step: "${exploration.step_name}"`]
+                        );
+                    } else {
+                        await NotebookUtils.showMessage(
+                            'Notebook Exploration',
+                            [
+                                `Executing "${runCellResponse.cellType}" cell failed.\n` +
+                                    `Resuming notebook at cell index ${runCellResponse.cellIndex}.`,
+                                `Error name: ${runCellResponse.ename}`,
+                                `Error value: ${runCellResponse.evalue}`
+                            ],
                         );
                     }
                 }
@@ -820,7 +827,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         notebook.content.scrollToPosition(cellPosition.top);
     };
 
-    runCells = async (notebook: NotebookPanel, type: string): Promise<{status: string, msg: string[]}> => {
+    runGlobalCells = async (notebook: NotebookPanel): Promise<IRunCellResponse> => {
         for (let i = 0; i < notebook.model.cells.length; i++) {
             if (!isCodeCellModel(notebook.model.cells.get(i))) {
                 continue;
@@ -828,42 +835,28 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             const blockName = this.getStepName(notebook, i);
             // If a cell of that type is found, run that
             // and all consequent cells getting merged to that one
-            if (blockName === type) {
+            if (blockName !== 'skip' && RESERVED_CELL_NAMES.includes(blockName)) {
                 while (i < notebook.model.cells.length) {
                     const cellName = this.getStepName(notebook, i);
-                    if (cellName !== type && cellName !== '') {
+                    if (cellName !== blockName && cellName !== '') {
                         break;
                     }
                     this.selectAndScrollToCell(notebook, {cell: notebook.content.widgets[i], index: i});
                     const kernelMsg = await CodeCell.execute(notebook.content.widgets[i] as CodeCell, notebook.session) as KernelMessage.IExecuteReplyMsg;
-                    if (kernelMsg.content && kernelMsg.content.status === "error") {
+                    if (kernelMsg.content && kernelMsg.content.status === 'error') {
                         return {
-                            status: "error",
-                            msg: [
-                                `Cell: ${type}`,
-                                `Index: ${i}`,
-                                `Error Name: ${kernelMsg.content.ename}`,
-                                `Error Value: ${kernelMsg.content.evalue}`,
-                            ],
+                            status: 'error',
+                            cellType: blockName,
+                            cellIndex: i,
+                            ename: kernelMsg.content.ename,
+                            evalue: kernelMsg.content.evalue,
                         };
                     }
                     i++;
                 }
             }
         }
-        return {status: "ok", msg: [""]};
-    };
-
-    runImports = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
-        return await this.runCells(notebook, 'imports');
-    };
-
-    declareFunctions = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
-        return await this.runCells(notebook, 'functions');
-    };
-
-    declareParameters = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
-        return await this.runCells(notebook, 'pipeline-parameters');
+        return {status: 'ok'};
     };
 
     getCellByStepName = (notebook: NotebookPanel, stepName: string): { cell: Cell; index: number } => {

@@ -18,7 +18,7 @@ const CELL_TYPES = [
     { value: 'skip', label: 'Skip Cell' }
 ];
 
-const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip'];
+export const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip'];
 const RESERVED_CELL_NAMES_HELP_TEXT: { [id: string]: string; } = {
     "imports": "The code in this cell will be pre-pended to every step of the pipeline.",
     "functions": "The code in this cell will be pre-pended to every step of the pipeline, after `imports`.",
