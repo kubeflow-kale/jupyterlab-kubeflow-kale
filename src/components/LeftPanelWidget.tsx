@@ -5,24 +5,26 @@ import {
 } from "@jupyterlab/notebook";
 import NotebookUtils from "../utils/NotebookUtils";
 import CellUtils from "../utils/CellUtils";
-import Switch from "react-switch";
-
 import {
     CollapsablePanel,
     MaterialInput
 } from "./Components";
-import {CellTags} from "./CellTags";
 import { InlineCellsMetadata } from "./cell-metadata/InlineCellMetadata";
-import {Cell} from "@jupyterlab/cells";
+import {Cell, isCodeCellModel, CodeCell, CodeCellModel} from "@jupyterlab/cells";
 import {VolumesPanel} from "./VolumesPanel";
 import {SplitDeployButton} from "./DeployButton";
 import {ExperimentInput} from "./ExperimentInput";
 import { DeploysProgress, DeployProgressState } from "./deploys-progress/DeploysProgress";
 import {JupyterFrontEnd} from "@jupyterlab/application";
 import {IDocumentManager} from "@jupyterlab/docmanager";
+import { KernelMessage } from "@jupyterlab/services";
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_notebook';
 
+enum RUN_CELL_STATUS {
+    OK = 'ok',
+    ERROR = 'error',
+}
 
 export interface ISelectOption {
     label: string;
@@ -447,17 +449,29 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     {source_notebook_path: nbFileName}
                 );
                 if (exploration && exploration.is_exploration) {
-                    await this.unmarshalData(nbFileName);
-                    const cell = this.getCellByStepName(notebook, 'block:' + exploration.step_name);
-                    notebook.content.select(cell.cell);
-                    notebook.content.activeCellIndex = cell.index;
-                    const cellPosition = (notebook.content.node.childNodes[cell.index] as HTMLElement).getBoundingClientRect();
-                    this.setState({activeCellIndex: cell.index, activeCell: cell.cell});
-                    notebook.content.scrollToPosition(cellPosition.top);
-                    await NotebookUtils.showMessage(
-                        'Notebook Exploration',
-                        [`You are now ready to explore the step: "${exploration.step_name}"`]
-                    );
+                    this.clearCellOutputs(this.state.activeNotebook);
+                    let runCellResponse = await this.runImports(this.state.activeNotebook);
+                    if (runCellResponse.status === RUN_CELL_STATUS.OK) {
+                        runCellResponse = await this.declareFunctions(this.state.activeNotebook);
+                        if (runCellResponse.status === RUN_CELL_STATUS.OK) {
+                            runCellResponse = await this.declareParameters(this.state.activeNotebook);
+                            if (runCellResponse.status === RUN_CELL_STATUS.OK) {
+                                await this.unmarshalData(nbFileName);
+                                const cell = this.getCellByStepName(this.state.activeNotebook, exploration.step_name);
+                                this.selectAndScrollToCell(this.state.activeNotebook, cell);
+                                await NotebookUtils.showMessage(
+                                    'Successful Notebook Exploration',
+                                    [`You are now ready to explore the step: "${exploration.step_name}"`]
+                                );
+                            }
+                        }
+                    }
+                    if (runCellResponse.status === RUN_CELL_STATUS.ERROR) {
+                        await NotebookUtils.showMessage(
+                            'Unsuccessful Notebook Exploration',
+                            runCellResponse.msg,
+                        );
+                    }
                 }
 
                 await this.getExperiments();
@@ -779,14 +793,82 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         await NotebookUtils.sendKernelRequestFromNotebook(this.state.activeNotebook, cmd, {});
     };
 
+    getStepName = (notebook: NotebookPanel, index: number): string => {
+        const names: string[] = (CellUtils.getCellMetaData(
+            notebook.content,
+            index,
+            'tags'
+        ) || []).filter((t: string) => !t.startsWith('prev:')
+        ).map((t: string) => t.replace('block:', ''));
+        return names.length > 0 ? names[0]: '';
+    };
+
+    clearCellOutputs = (notebook: NotebookPanel): void => {
+        for (let i = 0; i < notebook.model.cells.length; i++) {
+            if (!isCodeCellModel(notebook.model.cells.get(i))) {
+                continue;
+            }
+            (notebook.model.cells.get(i) as CodeCellModel).outputs.clear();
+        }
+    };
+
+    selectAndScrollToCell = (notebook: NotebookPanel, cell: {cell: Cell; index: number}): void => {
+        notebook.content.select(cell.cell);
+        notebook.content.activeCellIndex = cell.index;
+        this.setState({activeCellIndex: cell.index, activeCell: cell.cell});
+        const cellPosition = (notebook.content.node.childNodes[cell.index] as HTMLElement).getBoundingClientRect();
+        notebook.content.scrollToPosition(cellPosition.top);
+    };
+
+    runCells = async (notebook: NotebookPanel, type: string): Promise<{status: string, msg: string[]}> => {
+        for (let i = 0; i < notebook.model.cells.length; i++) {
+            if (!isCodeCellModel(notebook.model.cells.get(i))) {
+                continue;
+            }
+            const blockName = this.getStepName(notebook, i);
+            // If a cell of that type is found, run that
+            // and all consequent cells getting merged to that one
+            if (blockName === type) {
+                while (i < notebook.model.cells.length) {
+                    const cellName = this.getStepName(notebook, i);
+                    if (cellName !== type && cellName !== '') {
+                        break;
+                    }
+                    this.selectAndScrollToCell(notebook, {cell: notebook.content.widgets[i], index: i});
+                    const kernelMsg = await CodeCell.execute(notebook.content.widgets[i] as CodeCell, notebook.session) as KernelMessage.IExecuteReplyMsg;
+                    if (kernelMsg.content && kernelMsg.content.status === "error") {
+                        return {
+                            status: "error",
+                            msg: [
+                                `Cell: ${type}`,
+                                `Index: ${i}`,
+                                `Error Name: ${kernelMsg.content.ename}`,
+                                `Error Value: ${kernelMsg.content.evalue}`,
+                            ],
+                        };
+                    }
+                    i++;
+                }
+            }
+        }
+        return {status: "ok", msg: [""]};
+    };
+
+    runImports = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
+        return await this.runCells(notebook, 'imports');
+    };
+
+    declareFunctions = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
+        return await this.runCells(notebook, 'functions');
+    };
+
+    declareParameters = async (notebook: NotebookPanel): Promise<{status: string, msg: string[]}> => {
+        return await this.runCells(notebook, 'pipeline-parameters');
+    };
+
     getCellByStepName = (notebook: NotebookPanel, stepName: string): { cell: Cell; index: number } => {
         for (let i = 0; i < notebook.model.cells.length; i++) {
-            const tags: string[] = CellUtils.getCellMetaData(
-                notebook.content,
-                i,
-                'tags'
-            );
-            const name = (tags || []).filter(t => t !== '' && !t.startsWith('prev:'))[0];
+            const name = this.getStepName(notebook, i);
             if (name === stepName) {
                 return { cell: notebook.content.widgets[i], index: i };
             }
