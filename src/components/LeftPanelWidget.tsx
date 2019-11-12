@@ -479,6 +479,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                             ],
                         );
                     }
+                    await NotebookUtils.executeRpc(
+                        this.state.activeNotebook,
+                        'nb.remove_marshal_dir',
+                        {source_notebook_path: nbFileName}
+                    );
                 }
 
                 await this.getExperiments();
