@@ -481,17 +481,18 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     experiment = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name'])[0];
                     experiment_name = notebookMetadata['experiment_name'];
                 }
-                let stateVolumes = (notebookMetadata['volumes'] || []).map((volume: IVolumeMetadata) => {
+                let metadataVolumes = (notebookMetadata['volumes'] || []).filter((v: IVolumeMetadata) => v.type !== 'clone');
+                let stateVolumes = metadataVolumes.map((volume: IVolumeMetadata) => {
                     if (volume.type === 'new_pvc' && volume.annotations.length > 0 && volume.annotations[0].key === 'rok/origin') {
                         return {...volume, type: 'snap'};
                     }
                     return volume;
                 });
-                if (stateVolumes.length === 0) {
-                    stateVolumes = this.state.notebookVolumes;
+                if (stateVolumes.length === 0 && metadataVolumes.length === 0) {
+                    metadataVolumes = stateVolumes = this.state.notebookVolumes;
                 } else {
-                    const extraVolumes = this.state.notebookVolumes.filter(v => !stateVolumes.includes(v));
-                    stateVolumes = stateVolumes.concat(extraVolumes);
+                    metadataVolumes = metadataVolumes.concat(this.state.notebookVolumes);
+                    stateVolumes = stateVolumes.concat(this.state.notebookVolumes);
                 }
 
                 let metadata: IKaleNotebookMetadata = {
@@ -500,7 +501,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     pipeline_name: notebookMetadata['pipeline_name'] || '',
                     pipeline_description: notebookMetadata['pipeline_description'] || '',
                     docker_image: notebookMetadata['docker_image'] || DefaultState.metadata.docker_image,
-                    volumes: stateVolumes,
+                    volumes: metadataVolumes,
                 };
                 this.setState({
                     volumes: stateVolumes,
