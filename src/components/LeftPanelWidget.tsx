@@ -57,6 +57,7 @@ interface IProps {
     tracker: INotebookTracker;
     notebook: NotebookPanel;
     docManager: IDocumentManager;
+    backend: boolean;
 }
 
 interface IState {
@@ -419,7 +420,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             await notebook.session.ready;
             notebook.disposed.connect(this.handleNotebookDisposed);
             notebook.content.activeCellChanged.connect(this.handleActiveCellChanged);
-            const currentCell = {activeCell: notebook.content.activeCell, activeCellIndex: notebook.content.activeCellIndex};
+            const currentCell = {
+                activeCell: notebook.content.activeCell,
+                activeCellIndex: notebook.content.activeCellIndex
+            };
 
             // get existing notebook before we overwrite it with something else
             const notebookMetadata = NotebookUtils.getMetaData(
@@ -429,32 +433,34 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             console.log("Kubeflow metadata:");
             console.log(notebookMetadata);
 
-            // Detect whether this is an exploration, i.e., recovery from snapshot
-            const nbFileName = this.state.activeNotebook.context.path.split('/').pop();
-            const exploration = await NotebookUtils.executeRpc(
-                this.state.activeNotebook,
-                'nb.explore_notebook',
-                {source_notebook_path: nbFileName}
-            );
-            if (exploration && exploration.is_exploration) {
-                await this.unmarshalData(nbFileName);
-                const cell = this.getCellByStepName(notebook, 'block:' + exploration.step_name);
-                notebook.content.select(cell.cell);
-                notebook.content.activeCellIndex = cell.index;
-                const cellPosition = (notebook.content.node.childNodes[cell.index] as HTMLElement).getBoundingClientRect();
-                this.setState({activeCellIndex: cell.index, activeCell: cell.cell});
-                notebook.content.scrollToPosition(cellPosition.top);
-                await NotebookUtils.showMessage(
-                    'Notebook Exploration',
-                    [`You are now ready to explore the step: "${exploration.step_name}"`]
+            if (this.props.backend) {
+                // Detect whether this is an exploration, i.e., recovery from snapshot
+                const nbFileName = this.state.activeNotebook.context.path.split('/').pop();
+                const exploration = await NotebookUtils.executeRpc(
+                    this.state.activeNotebook,
+                    'nb.explore_notebook',
+                    {source_notebook_path: nbFileName}
                 );
-            }
+                if (exploration && exploration.is_exploration) {
+                    await this.unmarshalData(nbFileName);
+                    const cell = this.getCellByStepName(notebook, 'block:' + exploration.step_name);
+                    notebook.content.select(cell.cell);
+                    notebook.content.activeCellIndex = cell.index;
+                    const cellPosition = (notebook.content.node.childNodes[cell.index] as HTMLElement).getBoundingClientRect();
+                    this.setState({activeCellIndex: cell.index, activeCell: cell.cell});
+                    notebook.content.scrollToPosition(cellPosition.top);
+                    await NotebookUtils.showMessage(
+                        'Notebook Exploration',
+                        [`You are now ready to explore the step: "${exploration.step_name}"`]
+                    );
+                }
 
-            await this.getExperiments();
-            // Get information about volumes currently mounted on the notebook server
-            await this.getMountedVolumes();
-            // Detect the base image of the current Notebook Server
-            await this.getBaseImage();
+                await this.getExperiments();
+                // Get information about volumes currently mounted on the notebook server
+                await this.getMountedVolumes();
+                // Detect the base image of the current Notebook Server
+                await this.getBaseImage();
+            }
 
             // if the key exists in the notebook's metadata
             if (notebookMetadata) {

@@ -179,8 +179,8 @@ export default class NotebookUtilities {
   public static async createNewKernel() {
     // Get info about the available kernels and start a new one.
     let options: Kernel.IOptions = await Kernel.getSpecs().then(kernelSpecs => {
-      console.log('Default spec:', kernelSpecs.default);
-      console.log('Available specs', Object.keys(kernelSpecs.kernelspecs));
+      // console.log('Default spec:', kernelSpecs.default);
+      // console.log('Available specs', Object.keys(kernelSpecs.kernelspecs));
       // use the default name
       return {name: kernelSpecs.default}
     });
