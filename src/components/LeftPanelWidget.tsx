@@ -357,7 +357,12 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         if (this.props.tracker.currentWidget instanceof  NotebookPanel) {
             this.setState({activeNotebook: this.props.tracker.currentWidget});
             this.setNotebookPanel(this.props.tracker.currentWidget);
+            this.props.tracker.currentWidget.context.ready.then(() => {
+                console.warn('ready');
+                // document.querySelectorAll('.jp-Cell')
+            });
         }
+
     };
 
     componentWillUnmount = () => {

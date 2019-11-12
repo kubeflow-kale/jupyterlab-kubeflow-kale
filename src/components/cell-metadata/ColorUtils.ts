@@ -23,6 +23,8 @@ export default class ColorUtils {
 
     public static hashString(str: string): number {
         // http://erlycoder.com/49/javascript-hash-functions-to-convert-string-into-integer-hash-
+        // #a9a9a9  skip
+        // #008000  imports
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);

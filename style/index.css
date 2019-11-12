@@ -354,6 +354,8 @@ a {
   margin-left: 73px;
   margin-top: 8px;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
 }
 
 .inline-cell-dep {
@@ -365,10 +367,10 @@ a {
 }
 
 .inline-cell-metadata-name {
-  color: #fff;
+  /* color: #fff;
   border-radius: 16px;
   padding: 2px 12px;
-  display: inline-block;
+  display: inline-block; */
 }
 
 /* .jp-Notebook .jp-Cell.with-cell-metadata {
@@ -409,27 +411,34 @@ a {
   background-color: #fff;
 }
 
-/* .kale-metadata-editor{
-  position: absolute;
-  z-index: 9999;
-  background-color: #fff;
-  padding: 10px;
-  -webkit-box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
-  -moz-box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
-  box-shadow: 0px 0px 6px 1px rgba(0,0,0,0.75);
-  right: 4px;
-  top: 4px;
-} */
-
 .kale-cell-metadata-editor {
-  padding: 4px;
   margin-bottom: 6px;
+  display: flex;
+  width:50%;
+  border: 1px solid var(--md-grey-400);
+  padding: 6px;
+}
+
+.kale-cell-metadata-editor > div{
+  width: 50%;
+}
+
+.kale-cell-metadata-editor > div:first-child{
+  margin-right: 4px;
+  border-right: 1px solid var(--md-grey-400);
+  padding-right: 6px;
+}
+
+.kale-cell-metadata-editor .MuiSelect-selectMenu{
+  min-height:25px;
 }
 
 .kale-metadata-editor-wrapper.opened .kale-editor-toggle{
   position: relative;
   float: right;
   top: 4px;
+  right: 50%;
+  margin-right: -11px;
 }
 
 .kale-metadata-editor-wrapper.opened .kale-editor-toggle > svg{
@@ -442,4 +451,14 @@ a {
 
 .kale-reserved-cell {
   font-style: italic;
+}
+
+.kale-chip.MuiChip-root {
+  height: 21px;
+  color: #fff;
+}
+
+.kale-metadata-editor-wrapper:not(.kale-is-step) .kale-cell-metadata-editor>div:first-child{
+  width: 100%;
+  border-right: none;
 }

@@ -31,10 +31,10 @@ interface IProps {
     activeCellIndex: number;
     cellModel: ICellModel;
     stepName?: string;
+    cellMetadata?: any;
 }
 
 interface IState {
-    show: boolean;
     showEditor: boolean;
     currentActiveCellMetadata: IKaleCellMetadata;
     allBlocks?: string[];
@@ -53,7 +53,6 @@ const DefaultCellMetadata: IKaleCellMetadata = {
 };
 
 const DefaultState: IState = {
-    show: true,
     showEditor: false,
     allBlocks: [],
     currentActiveCellMetadata: DefaultCellMetadata,
@@ -104,6 +103,15 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     }
 
     componentDidUpdate = async (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
+        try {
+            if (prevProps.cellMetadata.prevBlockNames.join() !== this.props.cellMetadata.prevBlockNames.join()) {
+                // console.log(prevProps, this.props)
+                this.updateClassName()
+                this.readAndShowMetadata();
+            }
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     updateClassName = () => {
@@ -113,26 +121,24 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
 
     readAndShowMetadata = () => {
         // 1. Read metadata from the active cell
-        const cellMetadata = this.getKaleCellTags(
-            this.props.notebook.content,
-            this.props.activeCellIndex,
-            KUBEFLOW_CELL_METADATA_KEY);
+        // const cellMetadata = this.getKaleCellTags(
+        //     this.props.notebook.content,
+        //     this.props.activeCellIndex,
+        //     KUBEFLOW_CELL_METADATA_KEY);
         const allBlocks = this.getAllBlocks(this.props.notebook.content);
         const prevBlockName = this.getPreviousBlock(this.props.notebook.content, this.props.activeCellIndex);
 
-        if (cellMetadata) {
+        if (this.props.cellMetadata) {
             this.setState({
-                show: true,
                 allBlocks: allBlocks,
                 prevBlockName: prevBlockName,
                 currentActiveCellMetadata: {
-                    blockName: cellMetadata.blockName || '',
-                    prevBlockNames: cellMetadata.prevBlockNames || []
+                    blockName: this.props.cellMetadata.blockName || '',
+                    prevBlockNames: this.props.cellMetadata.prevBlockNames || []
                 }
             })
         } else {
             this.setState({
-                show: true,
                 allBlocks: allBlocks,
                 prevBlockName: prevBlockName,
                 currentActiveCellMetadata: DefaultCellMetadata,
@@ -287,87 +293,67 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     render() {
         const previousBlockChoices = this.state.allBlocks.filter(
             (el) => !RESERVED_CELL_NAMES.includes(el) &&
-                !(el === this.state.currentActiveCellMetadata.blockName));
+                !(el === this.state.currentActiveCellMetadata.blockName)).map(name => ({ value: name, color: `#${this.getColor(name)}` }));
 
-        // if the active cell is not of type `code`
-        if (!this.state.show) {
-            return (
-                <React.Fragment>
-                    <div>
-                        <div className={this.state.wrapperClass}>
-                            No active code cell
-                        </div>
-                    </div>
-                </React.Fragment>)
-        }
 
         const cellType = (RESERVED_CELL_NAMES.includes(this.state.currentActiveCellMetadata.blockName)) ?
             this.state.currentActiveCellMetadata.blockName : "step";
-        const cellTypeHelperText = RESERVED_CELL_NAMES_HELP_TEXT[this.state.currentActiveCellMetadata.blockName] || null;
-        const cellTypeSelect =
-            <MaterialSelect
-                updateValue={this.updateCurrentCellType}
-                values={CELL_TYPES}
-                value={cellType}
-                label={"Select Cell Type"}
-                index={0}
-                variant="standard"
-                helperText={cellTypeHelperText}
-            />;
 
-        if (this.state.currentActiveCellMetadata.blockName === 'skip') {
-            return (
-                <React.Fragment>
-                    <div>
-                        <div className={this.state.wrapperClass + (this.state.showEditor ? ' opened' : '')}>
-                            <button className="kale-editor-toggle" onClick={() => this.toggleEditor()}>
-                                {(this.state.showEditor ? <CloseIcon /> : <EditIcon />)}
-                            </button>
-                            <div
-                                className={'kale-cell-metadata-editor' + (this.state.showEditor ? '' : ' hidden')}
-                                style={{ border: `2px solid #${this.getColor(this.props.stepName)}` }}>
-                                {/* <div className='input-container'> */}
-                                {cellTypeSelect}
-                            </div>
-                        </div>
-                    </div>
-                </React.Fragment>)
-        }
+        const cellTypeHelperText = RESERVED_CELL_NAMES_HELP_TEXT[this.state.currentActiveCellMetadata.blockName] || null;
 
         const prevBlockNotice = (this.state.prevBlockName && this.state.currentActiveCellMetadata.blockName === '')
             ? "Leave step name empty to merge code to block " + this.state.prevBlockName
             : null;
-        const stepCellInputs = (cellType === 'step') ?
-            <React.Fragment>
-                <MaterialInput
-                    label={"Step Name"}
-                    updateValue={this.updateCurrentBlockName}
-                    value={this.state.currentActiveCellMetadata.blockName}
-                    regex={"^([_a-z]([_a-z0-9]*)?)?$"}
-                    regexErrorMsg={"Step name must consist of lower case alphanumeric characters or '_', and can not start with a digit."}
-                    helperText={prevBlockNotice}
-                    variant="standard"
-                />
-
-                <MaterialSelectMulti
-                    updateSelected={this.updatePrevBlocksNames}
-                    options={previousBlockChoices}
-                    variant="standard"
-                    selected={this.state.currentActiveCellMetadata.prevBlockNames} />
-            </React.Fragment> : null;
 
         return (
             <React.Fragment>
                 <div>
-                    <div className={this.state.wrapperClass + (this.state.showEditor ? ' opened' : '')}>
+                    <div className={
+                        this.state.wrapperClass
+                        + (this.state.showEditor ? ' opened' : '')
+                        + (cellType === 'step' ? ' kale-is-step' : '')
+                    }>
                         <button className="kale-editor-toggle" onClick={() => this.toggleEditor()}>
                             {(this.state.showEditor ? <CloseIcon /> : <EditIcon />)}
                         </button>
                         <div
-                            className={'kale-cell-metadata-editor' + (this.state.showEditor ? '' : ' hidden')}
-                            style={{ border: `2px solid #${this.getColor(this.props.stepName)}` }}>
-                            {cellTypeSelect}
-                            {stepCellInputs}
+                            className={'kale-cell-metadata-editor' + (this.state.showEditor ? '' : ' hidden')}>
+                            {/* style={{ border: `2px solid #${this.getColor(this.props.stepName)}` }} */}
+
+                            <div>
+                                <MaterialSelect
+                                    updateValue={this.updateCurrentCellType}
+                                    values={CELL_TYPES}
+                                    value={cellType}
+                                    label={"Cell type"}
+                                    index={0}
+                                    variant="standard"
+                                    helperText={cellTypeHelperText}
+                                />
+
+                                {cellType === 'step' ? (
+                                    <MaterialInput
+                                        label={"Step name"}
+                                        updateValue={this.updateCurrentBlockName}
+                                        value={this.state.currentActiveCellMetadata.blockName}
+                                        regex={"^([_a-z]([_a-z0-9]*)?)?$"}
+                                        regexErrorMsg={"Step name must consist of lower case alphanumeric characters or '_', and can not start with a digit."}
+                                        helperText={prevBlockNotice}
+                                        variant="standard"
+                                    />
+                                ) : ''}
+                            </div>
+
+                            {cellType === 'step' ? (
+                                <div>
+                                    <MaterialSelectMulti
+                                        updateSelected={this.updatePrevBlocksNames}
+                                        options={previousBlockChoices}
+                                        variant="standard"
+                                        selected={this.state.currentActiveCellMetadata.prevBlockNames} />
+                                </div>
+                            ) : ''}
+
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 import * as React from "react";
-
+import { Chip, Tooltip } from '@material-ui/core';
 import ColorUtils from './ColorUtils';
 
 interface InlineMetadata {
@@ -10,7 +10,7 @@ interface InlineMetadata {
     cellElement: any;
 }
 
-const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip','new cell'];
+const RESERVED_CELL_NAMES = ['imports', 'functions', 'pipeline-parameters', 'skip', 'new cell'];
 
 export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) => {
     let wrapperRef: HTMLElement = null;
@@ -26,17 +26,25 @@ export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) =
         setDependencies(props.prevBlockNames.map((name, i) => {
             const rgb = getColor(name)
             // https://material-ui.com/components/tooltips/
-            return <div
-                key={i}
-                className="inline-cell-dep"
-                style={{
-                    backgroundColor: `#${rgb}`
-                }}></div>
+            return (
+                <Tooltip
+                    placement="top"
+                    key={i}
+                    title={name}>
+                    <div
+                        className="inline-cell-dep"
+                        style={{
+                            backgroundColor: `#${rgb}`
+                        }}>
+                    </div>
+                </Tooltip>)
         }))
         const elem = wrapperRef
 
         if (RESERVED_CELL_NAMES.includes(props.blockName)) {
             setCellTypeClass('kale-reserved-cell')
+        } else {
+            setCellTypeClass('')
         }
         if ((props.blockName || props.parentBlockName) && elem && !elem.classList.contains('moved')) {
             elem.classList.add('moved');
@@ -97,16 +105,21 @@ export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) =
     return (
         <div>
             <div className={className} ref={(div) => { wrapperRef = div; }} >
-                <div>
-                    <span
+                {/* <div> */}
+                <Chip
+                    className={`kale-chip ${cellTypeClass}`}
+                    style={{ backgroundColor: `#${color}` }}
+                    key={props.blockName}
+                    label={props.blockName} />
+                {/* <span
                         className={`inline-cell-metadata-name ${cellTypeClass}`}
                         style={{
                             backgroundColor: `#${color}`
                         }}>
                         {props.blockName}
-                    </span>
-                    {dependencies}
-                </div>
+                    </span> */}
+                {dependencies}
+                {/* </div> */}
             </div>
         </div>
     );
