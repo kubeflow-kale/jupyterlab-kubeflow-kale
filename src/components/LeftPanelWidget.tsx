@@ -507,6 +507,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     experiment = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name'])[0];
                     experiment_name = notebookMetadata['experiment_name'];
                 }
+
+                let useNotebookVolumes = true;
                 let metadataVolumes = (notebookMetadata['volumes'] || []).filter((v: IVolumeMetadata) => v.type !== 'clone');
                 let stateVolumes = metadataVolumes.map((volume: IVolumeMetadata) => {
                     if (volume.type === 'new_pvc' && volume.annotations.length > 0 && volume.annotations[0].key === 'rok/origin') {
@@ -517,6 +519,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 if (stateVolumes.length === 0 && metadataVolumes.length === 0) {
                     metadataVolumes = stateVolumes = this.state.notebookVolumes;
                 } else {
+                    useNotebookVolumes = false;
                     metadataVolumes = metadataVolumes.concat(this.state.notebookVolumes);
                     stateVolumes = stateVolumes.concat(this.state.notebookVolumes);
                 }
@@ -531,7 +534,9 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 };
                 this.setState({
                     volumes: stateVolumes,
-                    metadata: metadata, ...currentCell
+                    metadata: metadata,
+                    useNotebookVolumes: useNotebookVolumes,
+                    ...currentCell
                 });
             } else {
                 this.setState({metadata: DefaultState.metadata, ...currentCell})
