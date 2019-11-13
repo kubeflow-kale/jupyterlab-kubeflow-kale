@@ -436,7 +436,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             await notebook.session.ready;
             notebook.disposed.connect(this.handleNotebookDisposed);
             notebook.content.activeCellChanged.connect(this.handleActiveCellChanged);
-            const currentCell = {
+            let currentCell = {
                 activeCell: notebook.content.activeCell,
                 activeCellIndex: notebook.content.activeCellIndex
             };
@@ -464,11 +464,16 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         await this.unmarshalData(nbFileName);
                         const cell = this.getCellByStepName(this.state.activeNotebook, exploration.step_name);
                         this.selectAndScrollToCell(this.state.activeNotebook, cell);
+                        currentCell = {activeCell: cell.cell, activeCellIndex: cell.index};
                         await NotebookUtils.showMessage(
                             'Notebook Exploration',
                             [`Resuming notebook at step: "${exploration.step_name}"`]
                         );
                     } else {
+                        currentCell = {
+                            activeCell: notebook.content.widgets[runCellResponse.cellIndex],
+                            activeCellIndex: runCellResponse.cellIndex,
+                        };
                         await NotebookUtils.showMessage(
                             'Notebook Exploration',
                             [
