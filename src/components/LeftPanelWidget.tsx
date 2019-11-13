@@ -86,7 +86,6 @@ interface IState {
     volumes?: IVolumeMetadata[];
     selectVolumeTypes: {label: string, value: string}[];
     useNotebookVolumes: boolean;
-    mounted: boolean;
     deploys: { [index: number]: DeployProgressState };
     isEnabled: boolean;
 }
@@ -163,7 +162,6 @@ const DefaultState: IState = {
     volumes: [],
     selectVolumeTypes: selectVolumeTypes,
     useNotebookVolumes: true,
-    mounted: false,
     deploys: {},
     isEnabled: false,
 };
@@ -361,7 +359,6 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     resetState = () => this.setState({...DefaultState, ...DefaultState.metadata});
 
     componentDidMount = () => {
-        this.state.mounted = true;
         // Notebook tracker will signal when a notebook is changed
         this.props.tracker.currentChanged.connect(this.handleNotebookChanged, this);
         // Set notebook widget if one is open
@@ -376,9 +373,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     };
 
-    componentWillUnmount = () => {
-        this.state.mounted = false;
-    };
+    componentWillUnmount = () => {};
 
     componentDidUpdate = (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
         // fast comparison of Metadata objects.
@@ -404,9 +399,6 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     * The parameters are automatically passed from the signal when a switch occurs.
     */
     handleNotebookChanged = async (tracker: INotebookTracker, notebook: NotebookPanel) => {
-        if (!this.state.mounted) {
-            return;
-        }
         // Set the current notebook and wait for the session to be ready
         if (notebook) {
             this.setState({activeNotebook: notebook});
