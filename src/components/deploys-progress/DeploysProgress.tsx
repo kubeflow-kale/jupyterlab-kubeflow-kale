@@ -4,6 +4,7 @@ import { CircularProgress } from "@material-ui/core";
 import { DeployProgress } from "./DeployProgress";
 
 export type DeployProgressState = {
+    showSnapshotProgress?: boolean;
     task?: any;
     showUploadProgress?: boolean;
     pipeline?: false | any;
@@ -27,6 +28,7 @@ export const DeploysProgress: React.FunctionComponent<DeploysProgress> = (props)
                 const dpState = dp[1];
                 return <DeployProgress
                     key={`d-${index}`}
+                    showSnapshotProgress={dpState.showSnapshotProgress}
                     task={dpState.task}
                     showUploadProgress={dpState.showUploadProgress}
                     pipeline={dpState.pipeline}

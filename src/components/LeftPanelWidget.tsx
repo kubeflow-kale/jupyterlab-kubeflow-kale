@@ -544,13 +544,14 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     };
 
     runSnapshotProcedure = async (_deployIndex:number) => {
+        const showSnapshotProgress = true;
         const snapshot = await this.snapshotNotebook();
         // console.warn('snapshot:',snapshot);
         const taskId = snapshot.task.id;
         let task = await this.getSnapshotProgress(taskId);
         // console.warn('task:',task);
         // console.log("Snapshotting... ", task.progress);
-        this.updateDeployProgress(_deployIndex, { task });
+        this.updateDeployProgress(_deployIndex, { task, showSnapshotProgress });
 
         while (!['success', 'error', 'canceled'].includes(task.status)) {
             task = await this.getSnapshotProgress(taskId,1000);
@@ -591,19 +592,22 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     runDeploymentCommand = async () => {
         const _deployIndex = ++deployIndex;
 
-        const task = await this.runSnapshotProcedure(_deployIndex)
-        console.log(task);
-        if (!task) {
-            return;
+        const metadata = JSON.parse(JSON.stringify(this.state.metadata)); // Deepcopy metadata
+
+        if (metadata.volumes.filter((v: IVolumeMetadata) => v.type === 'clone').length > 0) {
+            const task = await this.runSnapshotProcedure(_deployIndex)
+            console.log(task);
+            if (!task) {
+                return;
+            }
+            metadata.volumes = await this.replaceClonedVolumes(
+                task.bucket,
+                task.result.event.object,
+                task.result.event.version,
+                metadata.volumes
+            );
         }
 
-        const metadata = JSON.parse(JSON.stringify(this.state.metadata)); // Deepcopy metadata
-        metadata.volumes = await this.replaceClonedVolumes(
-            task.bucket,
-            task.result.event.object,
-            task.result.event.version,
-            this.state.metadata.volumes
-        );
         console.log('metadata:', metadata);
 
         const nbFileName = this.state.activeNotebook.context.path.split('/').pop();

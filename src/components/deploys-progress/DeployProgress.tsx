@@ -214,10 +214,11 @@ export const DeployProgress: React.FunctionComponent<DeployProgress> = (props) =
                 <CloseIcon style={{ fontSize: "1rem", cursor: "pointer" }} onClick={_ => props.onRemove()} />
             </div>
 
-            <div className='deploy-progress-row'>
-                <div className="deploy-progress-label">Taking snapshot... </div>
-                <div className="deploy-progress-value">{snapshotTpl}</div>
-            </div>
+            {props.showSnapshotProgress ?
+                (<div className='deploy-progress-row'>
+                    <div className="deploy-progress-label">Taking snapshot... </div>
+                    <div className="deploy-progress-value">{snapshotTpl}</div>
+                </div>) : null}
 
             {props.showUploadProgress ?
                 (<div className='deploy-progress-row'>
