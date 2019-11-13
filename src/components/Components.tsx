@@ -248,6 +248,7 @@ interface IMaterialSelectMultiple {
     options: { value:string, color:string }[],
     selected: string[]
     variant?: "filled" | "standard" | "outlined",
+    disabled?:boolean,
 }
 export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultiple> = (props) => {
 
@@ -269,6 +270,7 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
         <FormControl
             variant={props.variant}
             margin='dense'
+            disabled={props.disabled}
             className={classes.multiSelectForm}>
             <InputLabel
             ref={ref => {

@@ -32,6 +32,7 @@ interface IProps {
     cellModel: ICellModel;
     stepName?: string;
     cellMetadata?: any;
+    parentBlockName?: string;
 }
 
 interface IState {
@@ -344,9 +345,10 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                                 ) : ''}
                             </div>
 
-                            {cellType === 'step' ? (
+                            {(cellType === 'step') ? (
                                 <div>
                                     <MaterialSelectMulti
+                                        disabled={this.props.parentBlockName.length > 0}
                                         updateSelected={this.updatePrevBlocksNames}
                                         options={previousBlockChoices}
                                         variant="standard"

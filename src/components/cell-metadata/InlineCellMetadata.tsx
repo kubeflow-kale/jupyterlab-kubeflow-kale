@@ -126,6 +126,7 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
                 activeCellIndex={index}
                 cellModel={this.props.notebook.model.cells.get(index)}
                 stepName={tags.blockName || parentBlockName}
+                parentBlockName={parentBlockName || ''}
                 cellMetadata={tags}
             />)
 
