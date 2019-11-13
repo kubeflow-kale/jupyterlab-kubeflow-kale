@@ -509,7 +509,12 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                     };
                     experiment_name = notebookMetadata['experiment']['name'];
                 } else if (notebookMetadata['experiment_name']) {
-                    experiment = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name'])[0];
+                    const matchingExperiments = this.state.experiments.filter(e => e.name === notebookMetadata['experiment_name']);
+                    if (matchingExperiments.length > 0) {
+                        experiment = matchingExperiments[0];
+                    } else {
+                        experiment = {id: NEW_EXPERIMENT.id, name: notebookMetadata['experiment_name']};
+                    }
                     experiment_name = notebookMetadata['experiment_name'];
                 }
 
@@ -913,7 +918,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 if (this.state.metadata.experiment.name !== '') {
                     experimentInputValue = this.state.metadata.experiment.name;
                 } else {
-                    this.state.metadata.experiment_name;
+                    experimentInputValue = this.state.metadata.experiment_name;
                 }
             } else {
                 experimentInputValue = selectedExperiments[0].name;
