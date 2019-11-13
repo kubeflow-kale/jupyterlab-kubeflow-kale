@@ -820,6 +820,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             if (!isCodeCellModel(notebook.model.cells.get(i))) {
                 continue;
             }
+            (notebook.model.cells.get(i) as CodeCellModel).executionCount = null;
             (notebook.model.cells.get(i) as CodeCellModel).outputs.clear();
         }
     };
