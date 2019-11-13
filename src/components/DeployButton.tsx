@@ -2,6 +2,8 @@ import * as React from "react";
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import ButtonGroup from '@material-ui/core/ButtonGroup';
+import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
+import MoreVertIcon from '@material-ui/icons/MoreVert';
 import KeyboardArrowUp from '@material-ui/icons/KeyboardArrowUp';
 import KeyboardArrowDown from '@material-ui/icons/KeyboardArrowDown';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
@@ -15,7 +17,7 @@ import CircularProgress from '@material-ui/core/CircularProgress'
 const options = [
     {label: "Compile and Run", value: "run"},
     {label: "Compile and Upload", value: "upload"},
-    {label: "Compile to DSL", value: "compile"}
+    {label: "Compile and Save", value: "compile"}
 ];
 
 interface ISplitDeployButton {
@@ -62,7 +64,8 @@ export const SplitDeployButton: React.FunctionComponent<ISplitDeployButton> = (p
                 onClick={handleToggle}
                 style={{width: 'auto'}}
               >
-                { open ? <KeyboardArrowDown /> : <KeyboardArrowUp /> }
+                {/* { open ? <KeyboardArrowDown /> : <KeyboardArrowUp /> } */}
+                <MoreVertIcon />
               </Button>
             </ButtonGroup>
             <Popper style={{zIndex: 2}} open={open} anchorEl={anchorRef.current} transition disablePortal>

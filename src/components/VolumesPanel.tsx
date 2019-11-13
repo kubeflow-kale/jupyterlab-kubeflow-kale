@@ -87,16 +87,18 @@ export class VolumesPanel extends React.Component<IProps, any> {
 
                     const annotationField = (v.type === 'pv' || v.type === 'new_pvc' || v.type === 'snap') ?
                         <div>
-                            <div className={"kale-header-switch"} style={{padding: "0px 10px"}}>
-                                <div className="kale-header" style={{padding: "0", letterSpacing: ".3px", textTransform: "capitalize"}}>
-                                    Annotations
+                            {(v.annotations && v.annotations.length > 0) ?
+                                (<div style={{padding: "10px 0"}}>
+                                    <div className="switch-label">
+                                        Annotations
                                 </div>
-                            </div>
+                                </div>) : ''}
 
                             {(v.annotations && v.annotations.length > 0) ?
                                 v.annotations.map((a, a_idx) => {
-                                    return (<div key={"vol:" + idx + " annotation:" + a_idx}>
+                                    return (
                                         <AnnotationInput
+                                            key={"vol:" + idx + " annotation:" + a_idx}
                                             label={"Annotation"}
                                             volumeIdx={idx}
                                             annotationIdx={a_idx}
@@ -104,18 +106,16 @@ export class VolumesPanel extends React.Component<IProps, any> {
                                             deleteValue={this.props.deleteAnnotation}
                                             annotation={a}
                                             cannotBeDeleted={(v.type === 'snap' && a_idx === 0)}
-                                        />
-                                    </div>)
+                                        />)
                                 })
                             : null}
 
-                            <div className="add-button">
+                            <div className="add-button" style={{padding:0}}>
                                 <Button
                                     variant="contained"
                                     size="small"
                                     title="Add Annotation"
                                     onClick={_ => this.props.addAnnotation(idx)}
-                                    style={{transform: 'scale(0.7)'}}
                                 >
                                     <AddIcon />
                                     Add Annotation
@@ -169,7 +169,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
 
                         {annotationField}
 
-                        <div className="toolbar" style={{padding: "12px 4px 0 4px"}}>
+                        <div className="toolbar" style={{padding: "10px 0"}}>
                             <div className={"switch-label"}>Snapshot Volume</div>
                             <Switch
                                 checked={v.snapshot}
@@ -235,7 +235,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
                     </div>
                 </div>
 
-                <div className='toolbar input-container' style={{borderBottom: 'inset', fontSize: 'initial'}}>
+                <div className='toolbar input-container'>
                     <div className='switch-label'>Use this Notebook's Volumes</div>
                     <Switch
                         checked={this.props.useNotebookVolumes}

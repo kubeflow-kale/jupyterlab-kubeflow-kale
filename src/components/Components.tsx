@@ -22,14 +22,14 @@ import ColorUtils from './cell-metadata/ColorUtils';
 const useStyles = makeStyles(() =>
     createStyles({
         label: {
-            backgroundColor: "var(--jp-layout-color1)",
             color: 'var(--jp-input-border-color)',
+            fontSize: "var(--jp-ui-font-size2)"
         },
         input: {
             borderRadius: 4,
             position: 'relative',
             color: "var(--jp-ui-font-color1)",
-            backgroundColor: "var(--jp-layout-color1)",
+            fontSize: "var(--jp-ui-font-size2)"
         },
         focused: {},
         // notchedOutline: {
@@ -137,7 +137,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = (props) =>
             value={value}
             onChange={evt => {setValue(evt.target.value); debouncedCallback(evt.target.value, props.inputIndex)}}
             margin="dense"
-            variant={props.variant || "outlined" as any}
+            variant={props.variant as any}
             type={props.numeric && 'number'}
             helperText={helperText}
     /></ThemeProvider>
@@ -191,7 +191,7 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = (props) 
             value={props.value}
             onChange={evt => props.updateValue((evt.target as HTMLInputElement).value, props.index)}
             margin="dense"
-            variant={props.variant || "outlined" as any}
+            variant={props.variant as any}
             helperText={ (props.helperText) ? props.helperText : null }
         >
             {props.values.map((option: any) => (
@@ -207,8 +207,8 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = (props) 
 const useStylesSelectMulti = makeStyles(() =>
     createStyles({
         menu: {
-            backgroundColor: "var(--jp-layout-color1)",
-            color: "var(--jp-ui-font-color1)"
+            color: "var(--jp-ui-font-color1)",
+            fontSize: "var(--jp-ui-font-size2)"
         },
         chips: {
             display: 'flex',
@@ -223,7 +223,11 @@ const useStylesSelectMulti = makeStyles(() =>
         label: {
             backgroundColor: "var(--jp-layout-color1)",
             color: 'var(--jp-input-border-color)',
+            fontSize: "var(--jp-ui-font-size2)"
         },
+        input: {
+            fontSize: "var(--jp-ui-font-size2)"
+        }
     }),
 );
 
@@ -263,7 +267,7 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
 
     return <ThemeProvider theme={theme}>
         <FormControl
-            variant={props.variant || "outlined" as any}
+            variant={props.variant}
             margin='dense'
             className={classes.multiSelectForm}>
             <InputLabel
@@ -284,7 +288,7 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
             }}
             onChange={evt => props.updateSelected((evt.target as HTMLInputElement).value)}
             margin="dense"
-            variant={props.variant || "outlined" as any}
+            variant={props.variant}
             input={inputComponent}
             value={props.selected}
             renderValue={elements => (
@@ -322,9 +326,9 @@ export const CollapsablePanel: React.FunctionComponent<ICollapsablePanel> = (pro
     const [collapsed, setCollapsed] = React.useState(true);
 
     return (
-            <div className={'jp-Collapse ' + (!collapsed && 'jp-Collapse-open')}>
+            <div className={''+(!collapsed && 'jp-Collapse-open')}>
                 <div
-                    className='jp-Collapse-header'
+                    className='jp-Collapse-header kale-header'
                     onClick={_ => setCollapsed(!collapsed)}
                 >{props.title}</div>
                 <div className={'input-container p-Panel jp-Collapse-contents ' + (collapsed && 'p-mod-hidden')}>
