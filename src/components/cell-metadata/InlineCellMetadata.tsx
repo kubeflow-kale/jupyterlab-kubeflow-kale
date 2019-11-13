@@ -39,11 +39,11 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
     };
 
     componentDidUpdate = async (prevProps: Readonly<IProps>, prevState: Readonly<IState>) => {
-        if (this.props.notebook && !prevProps.notebook) {
-            console.log('new notebook');
-            this.setState({ checked: false });
-            this.props.onMetadataEnable(false);
-        }
+        // if (this.props.notebook && !prevProps.notebook) {
+        //     console.log('new notebook');
+        //     this.setState({ checked: false });
+        //     this.props.onMetadataEnable(false);
+        // }
 
         if (!this.props.notebook && prevProps.notebook) {
             console.log('no notebook');
@@ -56,18 +56,18 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
             if (prevProps.notebook) {
                 prevProps.notebook.context.saveState.disconnect
                     (this.handleSaveState);
-                prevProps.notebook.model.cells.changed.disconnect(this.handleCellChange);
+                // prevProps.notebook.model is null
+                // potential memory leak ??
+                // prevProps.notebook.model.cells.changed.disconnect(this.handleCellChange);
             }
             if (this.props.notebook) {
                 this.props.notebook.context.saveState.connect(this.handleSaveState);
                 this.props.notebook.model.cells.changed.connect(this.handleCellChange);
+                this.props.notebook.context.ready.then(() => {
+                    this.resetMetadataComponents();
+                });
             }
             console.log('notebook changed');
-            // TODO: Find a way to detect that the notebook is rendered and then
-            // update or remove the cells based on this.state.checked
-            this.setState({ checked: false });
-            this.props.onMetadataEnable(false);
-            this.removeCells();
         }
 
     };
@@ -81,10 +81,16 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
     }
 
     handleCellChange = (cells: any, args: any) => {
-        if (args.type === 'add' || args.type === 'remove') {
-            if (this.state.checked) {
-                this.addMetadataInfo()
-            }
+        if (args.type === 'add' || args.type === 'remove' || args.type === 'move') {
+            this.resetMetadataComponents();
+        }
+    }
+
+    resetMetadataComponents() {
+        if (this.state.checked) {
+            this.removeCells(() => {
+                this.addMetadataInfo();
+            });
         }
     }
 
@@ -135,10 +141,13 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         this.setState({ metadataCmp: metadata, editorsCmp: editors });
     }
 
-    removeCells = () => {
+    removeCells = (callback?: () => void) => {
         // triggers cleanup in InlineMetadata
-        this.setState({ metadataCmp: [] });
-        this.setState({ editorsCmp: [] });
+        this.setState({ metadataCmp: [], editorsCmp: [] }, () => {
+            if (callback) {
+                callback();
+            }
+        });
     }
 
     getAllBlocks = (notebook: Notebook): string[] => {
