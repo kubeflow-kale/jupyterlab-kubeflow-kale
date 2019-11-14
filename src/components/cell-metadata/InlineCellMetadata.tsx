@@ -61,9 +61,9 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
                 // prevProps.notebook.model.cells.changed.disconnect(this.handleCellChange);
             }
             if (this.props.notebook) {
-                this.props.notebook.context.saveState.connect(this.handleSaveState);
-                this.props.notebook.model.cells.changed.connect(this.handleCellChange);
                 this.props.notebook.context.ready.then(() => {
+                    this.props.notebook.context.saveState.connect(this.handleSaveState);
+                    this.props.notebook.model.cells.changed.connect(this.handleCellChange);
                     this.resetMetadataComponents();
                 });
             }
