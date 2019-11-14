@@ -727,15 +727,16 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     getExperiments = async () => {
         this.setState({gettingExperiments: true});
-        const list_experiments: IExperiment[] = await NotebookUtils.executeRpc(this.state.activeNotebook,"kfp.list_experiments", {});
+        let list_experiments: IExperiment[] = await NotebookUtils.executeRpc(this.state.activeNotebook,"kfp.list_experiments", {});
         if (list_experiments) {
-            this.setState({experiments: list_experiments.concat([NEW_EXPERIMENT])});
+            list_experiments.push(NEW_EXPERIMENT);
         } else {
-            this.setState({experiments: [NEW_EXPERIMENT]});
+            list_experiments = [NEW_EXPERIMENT];
         }
 
         // Fix experiment metadata
-        let selectedExperiments: IExperiment[] = this.state.experiments.filter(
+        let experiment: IExperiment = null;
+        let selectedExperiments: IExperiment[] = list_experiments.filter(
             e => (
                 e.id === this.state.metadata.experiment.id
                 || e.name === this.state.metadata.experiment.name
@@ -743,21 +744,25 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             )
         );
         if (selectedExperiments.length === 0 || selectedExperiments[0].id === NEW_EXPERIMENT.id) {
-            let name = this.state.experiments[0].name;
+            let name = list_experiments[0].name;
             if (name === NEW_EXPERIMENT.name) {
                 name = (this.state.metadata.experiment.name !== '') ?
                     this.state.metadata.experiment.name
                     : this.state.metadata.experiment_name;
             }
-            this.updateExperiment({
-                ...this.state.experiments[0],
-                name: name,
-            });
+            experiment = {...list_experiments[0], name: name};
         } else {
-            this.updateExperiment(selectedExperiments[0]);
+            experiment = selectedExperiments[0];
         }
-
-        this.setState({gettingExperiments: false});
+        this.setState({
+            experiments: list_experiments,
+            gettingExperiments: false,
+            metadata: {
+                ...this.state.metadata,
+                experiment: experiment,
+                experiment_name: experiment.name,
+            },
+        });
     };
 
     getMountedVolumes = async () => {
