@@ -85,9 +85,11 @@
 /*-----------------------------------------------------------------------------
 | Deploy Button
 |----------------------------------------------------------------------------*/
+/*
 .deploy-button {
 
 }
+*/
 
 .deploy-button button {
   height: 30px;
@@ -313,7 +315,11 @@ a {
 }
 
 .deploy-progress {
-  border-bottom: 1px solid var(--jp-border-color2);
+  border-top: 2px solid var(--jp-border-color2);
+}
+
+.deploy-progress:last-child {
+  border-bottom: 2px solid var(--jp-border-color2);
 }
 
 .deploy-progress-label{
