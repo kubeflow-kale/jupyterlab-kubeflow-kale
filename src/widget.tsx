@@ -62,8 +62,7 @@ async function activate(
 
     // TODO: backend can become an Enum that indicates the type of
     //  env we are in (like Local Laptop, MiniKF, GCP, UI without Kale, ...)
-    const kernel = await NotebookUtils.createNewKernel();
-    const backend = await getBackend(kernel);
+    const backend = await NotebookUtils.executeWithNewKernel(getBackend);
 
     /**
      * Detect if Kale is installed
@@ -81,12 +80,14 @@ async function activate(
         return true
     }
 
-    async function loadPanel(kernel: Kernel.IKernel) {
+    async function loadPanel() {
         let reveal_widget = undefined;
         if (backend) {
             // Check if NOTEBOOK_PATH env variable exists and if so load
             // that Notebook
-            const path = await NotebookUtils.executeRpc(kernel, "nb.resume_notebook_path");
+            const path = await NotebookUtils.executeWithNewKernel(
+                NotebookUtils.executeRpc, ["nb.resume_notebook_path"]);
+            // const path = await NotebookUtils.executeRpc(kernel, "nb.resume_notebook_path");
             if (path) {
                 console.log("Resuming notebook " + path);
                 // open the notebook panel
@@ -126,6 +127,6 @@ async function activate(
     // Initialize once the application shell has been restored
     // and all the widgets have been added to the NotebookTracker
     lab.restored.then(() => {
-        loadPanel(kernel);
+        loadPanel();
     });
 }

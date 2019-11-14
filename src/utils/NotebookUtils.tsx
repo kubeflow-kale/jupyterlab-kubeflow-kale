@@ -192,6 +192,23 @@ export default class NotebookUtilities {
       });
   }
 
+  // TODO: We can use this context manager to execute commands inside a new kernel
+  //  and be sure that it will be disposed of at the end.
+  //  Another approach could be to create a kale_rpc Kernel, as a singleton,
+  //  created at startup. The only (possible) drawback is that we can not name
+  //  a kernel instance with a custom id/name, so when refreshing JupyterLab we would
+  //  not recognize the kernel. A solution could be to have a kernel spec dedicated to kale rpc calls.
+  public static async executeWithNewKernel(action: Function, args: any[] = []) {
+    // create brand new kernel
+    const _k = await this.createNewKernel();
+    // execute action inside kernel
+    const res = await action(_k, ...args);
+    // close kernel
+    _k.shutdown();
+    // return result
+    return res
+  }
+
   /**
    * @description This function runs code directly in the notebook's kernel and then evaluates the
    * result and returns it as a promise.
