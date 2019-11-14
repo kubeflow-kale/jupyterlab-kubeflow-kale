@@ -973,7 +973,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
         />;
 
         return (
-            <div className={"kubeflow-widget"}>
+            <div className={"kubeflow-widget"} key="kale-widget">
                 <div className={"kubeflow-widget-content"}>
 
                     <div>
@@ -983,7 +983,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         </p>
                     </div>
 
-                    <div className="kale-component">
+                    <div className="kale-component" key="kale-component-cell-metadata">
                         <InlineCellsMetadata
                             onMetadataEnable={this.onMetadataEnable}
                             notebook={this.state.activeNotebook}
@@ -991,7 +991,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         />
                     </div>
 
-                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}>
+                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}
+                        key="kale-component-pipeline-metadata">
                         <div>
                             <p className="kale-header">Pipeline Metadata</p>
                         </div>
@@ -1018,7 +1019,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                         {volsPanel}
                     </div>
 
-                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}>
+                    <div className={"kale-component " + (this.state.isEnabled ? '' : 'hidden')}
+                        key="kale-component-advanced-settings">
                         <CollapsablePanel
                             title={"Advanced Settings"}
                             dockerImageValue={this.state.metadata.docker_image}
