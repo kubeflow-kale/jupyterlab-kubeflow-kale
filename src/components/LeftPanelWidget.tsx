@@ -602,6 +602,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     };
 
     runDeploymentCommand = async () => {
+        if (!this.state.activeNotebook) {
+            this.setState({ runDeployment: false });
+            return;
+        }
+        
         const _deployIndex = ++deployIndex;
 
         const metadata = JSON.parse(JSON.stringify(this.state.metadata)); // Deepcopy metadata
@@ -610,6 +615,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             const task = await this.runSnapshotProcedure(_deployIndex)
             console.log(task);
             if (!task) {
+                this.setState({ runDeployment: false });
                 return;
             }
             metadata.volumes = await this.replaceClonedVolumes(
