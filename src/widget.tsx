@@ -25,6 +25,7 @@ import '../style/index.css';
 
 import {KubeflowKaleLeftPanel} from './components/LeftPanelWidget'
 import NotebookUtils from "./utils/NotebookUtils";
+import { Kernel } from "@jupyterlab/services";
 
 
 /* tslint:disable */
@@ -61,15 +62,16 @@ async function activate(
 
     // TODO: backend can become an Enum that indicates the type of
     //  env we are in (like Local Laptop, MiniKF, GCP, UI without Kale, ...)
-    const backend = await getBackend();
+    const kernel = await NotebookUtils.createNewKernel();
+    const backend = await getBackend(kernel);
 
     /**
      * Detect if Kale is installed
      */
-    async function getBackend() {
+    async function getBackend(kernel: Kernel.IKernel) {
         try {
             await NotebookUtils.sendKernelRequest(
-                await NotebookUtils.createNewKernel(),
+                kernel,
                 `import kale`,
                 {});
         } catch (error) {
@@ -79,23 +81,22 @@ async function activate(
         return true
     }
 
-    async function loadPanel() {
+    async function loadPanel(kernel: Kernel.IKernel) {
         let reveal_widget = undefined;
         if (backend) {
             // Check if NOTEBOOK_PATH env variable exists and if so load
             // that Notebook
-            let k = await NotebookUtils.createNewKernel();
-            const path = await NotebookUtils.executeRpc(k, "nb.resume_notebook_path");
+            const path = await NotebookUtils.executeRpc(kernel, "nb.resume_notebook_path");
             if (path) {
                 console.log("Resuming notebook " + path);
                 // open the notebook panel
-                reveal_widget = await docManager.openOrReveal(path);
+                reveal_widget = docManager.openOrReveal(path);
             }
         }
 
         // add widget
         if (!widget.isAttached) {
-            await labShell.add(widget, "left");
+            labShell.add(widget, "left");
         }
         // open widget if resuming from a notebook
         if (reveal_widget) {
@@ -125,6 +126,6 @@ async function activate(
     // Initialize once the application shell has been restored
     // and all the widgets have been added to the NotebookTracker
     lab.restored.then(() => {
-        loadPanel();
+        loadPanel(kernel);
     });
 }
