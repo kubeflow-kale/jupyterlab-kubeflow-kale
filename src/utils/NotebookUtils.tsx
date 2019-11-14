@@ -313,7 +313,7 @@ export default class NotebookUtilities {
 
   /**
    * Execute kale.rpc module functions
-   * Example: func_result = await this.executeRpc("rpc_submodule.func", {arg1, arg2})
+   * Example: func_result = await this.executeRpc(kernel | notebookPanel, "rpc_submodule.func", {arg1, arg2})
    *    where func_result is a JSON object
    * @param func Function name to be executed
    * @param kwargs Dictionary with arguments to be passed to the function

@@ -59,10 +59,11 @@ async function activate(
 ) {
 
     let widget: ReactWidget;
-
+    const kernel: Kernel.IKernel = await NotebookUtils.createNewKernel();
+    window.addEventListener("beforeunload", () => kernel.shutdown());
     // TODO: backend can become an Enum that indicates the type of
     //  env we are in (like Local Laptop, MiniKF, GCP, UI without Kale, ...)
-    const backend = await NotebookUtils.executeWithNewKernel(getBackend);
+    const backend = await getBackend(kernel);
 
     /**
      * Detect if Kale is installed
@@ -85,9 +86,7 @@ async function activate(
         if (backend) {
             // Check if NOTEBOOK_PATH env variable exists and if so load
             // that Notebook
-            const path = await NotebookUtils.executeWithNewKernel(
-                NotebookUtils.executeRpc, ["nb.resume_notebook_path"]);
-            // const path = await NotebookUtils.executeRpc(kernel, "nb.resume_notebook_path");
+            const path = await NotebookUtils.executeRpc(kernel, "nb.resume_notebook_path");
             if (path) {
                 console.log("Resuming notebook " + path);
                 // open the notebook panel
