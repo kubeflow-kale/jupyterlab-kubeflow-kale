@@ -88,6 +88,7 @@ interface IState {
     useNotebookVolumes: boolean;
     deploys: { [index: number]: DeployProgressState };
     isEnabled: boolean;
+    autosnapshot: boolean;
 }
 
 export interface IAnnotation {
@@ -127,6 +128,7 @@ interface ICompileNotebookArgs {
     source_notebook_path: string;
     notebook_metadata_overrides: Object;
     debug: boolean;
+    auto_snapshot: boolean;
 }
 
 interface IUploadPipelineArgs {
@@ -164,6 +166,7 @@ const DefaultState: IState = {
     useNotebookVolumes: true,
     deploys: {},
     isEnabled: false,
+    autosnapshot: true,
 };
 
 let deployIndex = 0;
@@ -205,8 +208,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 ...this.state.metadata,
                 volumes: this.state.notebookVolumes,
             },
+            autosnapshot: true,
         })
     };
+    updateAutosnapshotSwitch = () => this.setState({autosnapshot: !this.state.autosnapshot});
 
     // Volume managers
     deleteVolume = (idx: number) => {
@@ -625,6 +630,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             source_notebook_path: nbFileName,
             notebook_metadata_overrides: metadata,
             debug: this.state.deployDebugMessage,
+            auto_snapshot: this.state.volumes.length > 0 && this.state.autosnapshot,
         };
         const compileNotebook = await NotebookUtils.executeRpc(this.state.activeNotebook, 'nb.compile_notebook', compileNotebookArgs);
         if (!compileNotebook) {
@@ -957,6 +963,8 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             selectVolumeTypes={this.state.selectVolumeTypes}
             useNotebookVolumes={this.state.useNotebookVolumes}
             updateVolumesSwitch={this.updateVolumesSwitch}
+            autosnapshot={this.state.autosnapshot}
+            updateAutosnapshotSwitch={this.updateAutosnapshotSwitch}
         />;
 
         return (
