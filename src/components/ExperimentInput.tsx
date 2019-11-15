@@ -50,7 +50,7 @@ export const ExperimentInput: React.FunctionComponent<IExperimentInput> = (props
                 <MaterialInput
                     updateValue={updateValue}
                     value={props.value || ''}
-                    label={"Create New Experiment"}
+                    label={"Experiment Name"}
                     regex={regex}
                     regexErrorMsg={regexErrorMsg}
                 />
