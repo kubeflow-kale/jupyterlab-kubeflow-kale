@@ -90,7 +90,9 @@ export const InlineMetadata: React.FunctionComponent<InlineMetadata> = (props) =
         const cellElement = props.cellElement;
 
         const divWrapper = cellElement.querySelector('.CodeMirror') as HTMLElement;
-        divWrapper.style.border = `2px solid #${rgb}`
+        if (cellElement) {
+            divWrapper.style.border = `2px solid #${rgb}`
+        }
 
         if (props.parentBlockName) {
             cellElement.classList.add('kale-merged-cell');
