@@ -40,7 +40,7 @@ export const ExperimentInput: React.FunctionComponent<IExperimentInput> = (props
         <MaterialSelect
             label={"Select experiment"}
             values={options}
-            value={props.selected || ''}
+            value={props.selected}
             index={-1}
             updateValue={updateSelected}
             helperText={(props.loading ? "Loading..." : null)}
@@ -49,7 +49,7 @@ export const ExperimentInput: React.FunctionComponent<IExperimentInput> = (props
             <div>
                 <MaterialInput
                     updateValue={updateValue}
-                    value={props.value || ''}
+                    value={props.value}
                     label={"Experiment Name"}
                     regex={regex}
                     regexErrorMsg={regexErrorMsg}
