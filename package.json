@@ -48,6 +48,7 @@
     "use-debounce": "^3.0.1"
   },
   "devDependencies": {
+    "prettier": "^1.19.1",
     "rimraf": "~2.6.2",
     "typescript": "3.5.1"
   },
