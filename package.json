@@ -30,7 +30,11 @@
     "build": "tsc",
     "clean": "rimraf lib",
     "prepublishOnly": "npm run build",
-    "watch": "tsc -w --listEmittedFiles"
+    "watch": "tsc -w --listEmittedFiles",
+    "format": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md}'",
+    "format:check": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md}' --check",
+    "format:staged": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md}' --staged",
+    "format:check:staged": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md}' --check --staged"
   },
   "dependencies": {
     "@jupyterlab/application": ">=1.1.0 <2.0.0",
