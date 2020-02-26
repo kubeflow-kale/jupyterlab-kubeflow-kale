@@ -48,7 +48,9 @@
     "use-debounce": "^3.0.1"
   },
   "devDependencies": {
+    "husky": "^4.2.3",
     "prettier": "^1.19.1",
+    "pretty-quick": "^2.0.1",
     "rimraf": "~2.6.2",
     "typescript": "3.5.1"
   },
@@ -60,5 +62,10 @@
   },
   "jupyterlab": {
     "extension": true
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md}' --check --staged"
+    }
   }
 }
