@@ -32,9 +32,9 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc -w --listEmittedFiles",
     "format": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md,json}'",
-    "format:check": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md,json}' --check",
-    "format:staged": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md,json}' --staged",
-    "format:check:staged": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md,json}' --check --staged"
+    "format:check": "jlpm format --check",
+    "format:staged": "jlpm format --staged",
+    "format:check:staged": "jlpm format:check --staged"
   },
   "dependencies": {
     "@jupyterlab/application": ">=1.1.0 <2.0.0",
@@ -69,7 +69,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "pretty-quick --pattern '**/*.{ts,js,tsx,jsx,scss,css,html,md,json}' --check --staged"
+      "pre-commit": "jlpm format:check:staged"
     }
   }
 }
