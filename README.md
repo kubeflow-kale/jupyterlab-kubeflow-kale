@@ -34,7 +34,9 @@ The Launcher is able to invoke Kale in the background by programmatically execut
 kale --nb <current_active_notebook_name> [--upload_pipeline] [--run_pipeline]
 ```
 
-## Contributing
+## Development
+
+### Build
 
 To build and run the extension in dev mode, first clone the repository in your local machine.
 
@@ -64,3 +66,19 @@ And run JupyterLab in `watch` mode to load the new compiled version:
 ```
 jupyter lab --no-browser --watch
 ```
+
+### Contribute
+
+This repository uses
+[husky](https://github.com/typicode/husky)
+to set up git hooks.
+
+For `husky` to function properly, you need to have `yarn` installed and in your
+`PATH`. The reason that is required is that `husky` is installed via
+`jlpm install` and `jlpm` is a `yarn` wrapper. (Similarly, if it was installed
+using the `npm` package manager, then `npm` would have to be in `PATH`.)
+
+Currently installed git hooks:
+
+- `pre-commit`: Run a prettier check on staged files, using
+  [pretty-quick](https://github.com/azz/pretty-quick)
