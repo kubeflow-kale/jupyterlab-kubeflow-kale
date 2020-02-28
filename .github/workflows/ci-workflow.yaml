@@ -16,7 +16,7 @@ jobs:
       - name: Run format:check against master
         uses: borales/actions-yarn@v2.1.0
         with:
-          cmd: format:check -- --branch origin/master
+          cmd: format -- --check --branch origin/master
   build:
     runs-on: ubuntu-latest
     steps:
