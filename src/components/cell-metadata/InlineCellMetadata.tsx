@@ -245,8 +245,8 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
           />
         </div>
         <div className="hidden">
-          {this.state.metadataCmp}
           {this.state.editorsCmp}
+          {this.state.metadataCmp}
         </div>
       </React.Fragment>
     );
