@@ -20,7 +20,13 @@ import { DocumentRegistry } from '@jupyterlab/docregistry';
 import Switch from 'react-switch';
 import CellUtils from '../../utils/CellUtils';
 import { InlineMetadata } from './InlineMetadata';
-import { CellMetadataEditor, RESERVED_CELL_NAMES } from './CellMetadataEditor';
+import {
+  CellMetadataEditor,
+  RESERVED_CELL_NAMES,
+  IProps as EditorProps,
+} from './CellMetadataEditor';
+import { CellMetadataContext } from './CellMetadataContext';
+import { isCodeCellModel, CodeCellModel } from '@jupyterlab/cells';
 
 interface IProps {
   notebook: NotebookPanel;
@@ -32,20 +38,27 @@ interface IState {
   prevBlockName?: string;
   metadataCmp?: JSX.Element[];
   checked?: boolean;
-  editorsCmp?: JSX.Element[];
+  editors?: any[];
+  isEditorVisible: boolean;
 }
 
 const DefaultState: IState = {
   prevBlockName: null,
   metadataCmp: [],
   checked: false,
-  editorsCmp: [],
+  editors: [],
+  isEditorVisible: false,
 };
 
 type SaveState = 'started' | 'completed' | 'failed';
 
 export class InlineCellsMetadata extends React.Component<IProps, IState> {
   state = DefaultState;
+
+  constructor(props: IProps) {
+    super(props);
+    this.onEditorVisibilityChange = this.onEditorVisibilityChange.bind(this);
+  }
 
   componentDidUpdate = async (
     prevProps: Readonly<IProps>,
@@ -75,6 +88,9 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
           this.resetMetadataComponents();
         });
       }
+
+      // hide editor on notebook change
+      this.setState({ isEditorVisible: false });
     }
   };
 
@@ -87,9 +103,18 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
   };
 
   handleCellChange = (cells: any, args: any) => {
-    const types = ['add', 'remove', 'move'];
+    const types = ['add', 'remove', 'move', 'set'];
     if (types.includes(args.type)) {
       this.resetMetadataComponents();
+    }
+    if (args.type === 'set' && args.oldValues[0] instanceof CodeCellModel) {
+      CellUtils.setCellMetaData(
+        this.props.notebook,
+        args.newIndex,
+        'tags',
+        [],
+        true,
+      );
     }
   };
 
@@ -98,6 +123,7 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
       this.removeCells(() => {
         this.addMetadataInfo();
       });
+      this.setState({ isEditorVisible: false });
     }
   }
 
@@ -119,43 +145,51 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         };
       }
       allTags.push(tags);
-      let parentBlockName;
+      let previousBlockName = '';
 
       if (!tags.blockName) {
-        parentBlockName = this.getPreviousBlock(
+        previousBlockName = this.getPreviousBlock(
           this.props.notebook.content,
           index,
         );
       }
-
-      editors.push(
-        <CellMetadataEditor
-          key={index}
-          notebook={this.props.notebook}
-          activeCellIndex={index}
-          cellModel={this.props.notebook.model.cells.get(index)}
-          stepName={tags.blockName || parentBlockName}
-          parentBlockName={parentBlockName || ''}
-          cellMetadata={tags}
-        />,
+      const cellModel = this.props.notebook.model.cells.get(
+        this.props.activeCellIndex,
       );
+      const editorProps: EditorProps = {
+        notebook: this.props.notebook,
+        cellModel: cellModel,
+        stepName: tags.blockName || '',
+        stepDependencies: tags.prevBlockNames || [],
+      };
+      editors.push(editorProps);
 
-      metadata.push(
-        <InlineMetadata
-          key={index}
-          cellElement={this.props.notebook.content.node.childNodes[index]}
-          blockName={tags.blockName}
-          prevBlockNames={tags.prevBlockNames}
-          parentBlockName={parentBlockName}
-        />,
+      const isCodeCell = isCodeCellModel(
+        this.props.notebook.model.cells.get(index),
       );
+      if (isCodeCell) {
+        metadata.push(
+          <InlineMetadata
+            key={index}
+            cellElement={this.props.notebook.content.node.childNodes[index]}
+            blockName={tags.blockName}
+            stepDependencies={tags.prevBlockNames}
+            previousBlockName={previousBlockName}
+            cellIndex={index}
+          />,
+        );
+      }
     }
-    this.setState({ metadataCmp: metadata, editorsCmp: editors });
+
+    this.setState({
+      metadataCmp: metadata,
+      editors: editors,
+    });
   };
 
   removeCells = (callback?: () => void) => {
     // triggers cleanup in InlineMetadata
-    this.setState({ metadataCmp: [], editorsCmp: [] }, () => {
+    this.setState({ metadataCmp: [], editors: [] }, () => {
       if (callback) {
         callback();
       }
@@ -218,14 +252,23 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
   handleChange(checked: boolean) {
     this.setState({ checked });
     this.props.onMetadataEnable(checked);
+
     if (checked) {
       this.addMetadataInfo();
     } else {
+      this.setState({ isEditorVisible: false });
       this.removeCells();
     }
   }
 
+  onEditorVisibilityChange(isEditorVisible: boolean) {
+    this.setState({ isEditorVisible });
+  }
+
   render() {
+    const editorProps = {
+      ...this.state.editors[this.props.activeCellIndex],
+    };
     return (
       <React.Fragment>
         <div className="toolbar input-container">
@@ -245,8 +288,21 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
           />
         </div>
         <div className="hidden">
-          {this.state.editorsCmp}
-          {this.state.metadataCmp}
+          <CellMetadataContext.Provider
+            value={{
+              activeCellIndex: this.props.activeCellIndex,
+              isEditorVisible: this.state.isEditorVisible,
+              onEditorVisibilityChange: this.onEditorVisibilityChange,
+            }}
+          >
+            <CellMetadataEditor
+              notebook={editorProps.notebook}
+              cellModel={editorProps.cellModel}
+              stepName={editorProps.stepName}
+              stepDependencies={editorProps.stepDependencies}
+            />
+            {this.state.metadataCmp}
+          </CellMetadataContext.Provider>
         </div>
       </React.Fragment>
     );
