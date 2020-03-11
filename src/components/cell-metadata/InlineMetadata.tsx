@@ -21,45 +21,72 @@ import {
   RESERVED_CELL_NAMES,
   RESERVED_CELL_NAMES_HELP_TEXT,
 } from './CellMetadataEditor';
+import EditIcon from '@material-ui/icons/Edit';
+import { CellMetadataContext } from './CellMetadataContext';
 
 interface IProps {
   blockName: string;
-  parentBlockName: string;
-  prevBlockNames: string[];
+  previousBlockName: string;
+  stepDependencies: string[];
   cellElement: any;
+  cellIndex: number;
 }
 
 interface IState {
-  defaultCSSClasses: string;
-  className: string;
   cellTypeClass: string;
   color: string;
   dependencies: any[];
+  showEditor: boolean;
+  isMergedCell: boolean;
 }
 
 const DefaultState: IState = {
-  defaultCSSClasses: `kale-inline-cell-metadata`,
-  className: `kale-inline-cell-metadata`,
   cellTypeClass: '',
   color: '',
   dependencies: [],
+  showEditor: false,
+  isMergedCell: false,
 };
 
+/**
+ * This component is used by InlineCellMetadata to display some state information
+ * on top of each cell that is tagged with Kale tags.
+ *
+ * When a cell is tagged with a step name and some dependencies, a chip with the
+ * step name and a series of coloured dots for its dependencies are show.
+ */
 export class InlineMetadata extends React.Component<IProps, IState> {
+  static contextType = CellMetadataContext;
   wrapperRef: React.RefObject<HTMLDivElement> = null;
   state = DefaultState;
 
   constructor(props: IProps) {
     super(props);
+    // We use this element referene in order to move it inside Notebooks's cell
+    // element.
     this.wrapperRef = React.createRef();
+    this.openEditor = this.openEditor.bind(this);
   }
 
   componentDidMount() {
-    this.updateClassName();
+    this.setState(this.updateIsMergedState);
     this.checkIfReservedName();
     this.updateStyles();
     this.updateDependencies();
-    this.moveElement();
+    this.moveComponentElementInCell();
+  }
+
+  moveComponentElementInCell() {
+    if (
+      this.wrapperRef &&
+      !this.wrapperRef.current.classList.contains('moved')
+    ) {
+      this.wrapperRef.current.classList.add('moved');
+      this.props.cellElement.insertAdjacentElement(
+        'afterbegin',
+        this.wrapperRef.current,
+      );
+    }
   }
 
   componentWillUnmount() {
@@ -77,53 +104,99 @@ export class InlineMetadata extends React.Component<IProps, IState> {
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IState>) {
+    this.setState(this.updateIsMergedState);
+
     if (
       prevProps.blockName !== this.props.blockName ||
-      prevProps.parentBlockName !== this.props.parentBlockName ||
-      prevProps.prevBlockNames !== this.props.prevBlockNames ||
-      prevProps.cellElement !== this.props.cellElement
+      prevProps.previousBlockName !== this.props.previousBlockName
     ) {
-      this.updateClassName();
-      this.checkIfReservedName();
       this.updateStyles();
+    }
+
+    if (prevProps.stepDependencies !== this.props.stepDependencies) {
       this.updateDependencies();
     }
+
+    this.checkIfReservedName();
+
+    this.setState(this.updateEditorState);
   }
 
-  updateClassName() {
-    let c = this.state.defaultCSSClasses;
-    if (this.props.parentBlockName) {
-      c = c + ' hidden';
+  updateEditorState = (state: IState, props: IProps) => {
+    let showEditor = false;
+
+    if (this.context.isEditorVisible) {
+      if (this.context.activeCellIndex === props.cellIndex) {
+        showEditor = true;
+      }
     }
-    this.setState({ className: c });
-  }
 
+    if (showEditor === state.showEditor) {
+      return null;
+    }
+
+    return { showEditor };
+  };
+
+  updateIsMergedState = (state: IState, props: IProps) => {
+    let newIsMergedCell = false;
+    const cellElement = props.cellElement;
+    if (!props.blockName) {
+      newIsMergedCell = true;
+
+      // TODO: This is a side effect, consider moving it somewhere else.
+      cellElement.classList.add('kale-merged-cell');
+    } else {
+      cellElement.classList.remove('kale-merged-cell');
+    }
+
+    if (newIsMergedCell === state.isMergedCell) {
+      return null;
+    }
+
+    return { isMergedCell: newIsMergedCell };
+  };
+
+  /**
+   * Check if the block tag of che current cell has a reserved name. If so,
+   * apply the corresponding css class to the HTML Cell element.
+   */
   checkIfReservedName() {
-    let cellTypeClass = '';
-    if (RESERVED_CELL_NAMES.includes(this.props.blockName)) {
-      cellTypeClass = 'kale-reserved-cell';
-    }
-    this.setState({ cellTypeClass });
+    this.setState((state: IState, props: IProps) => {
+      let cellTypeClass = '';
+      if (RESERVED_CELL_NAMES.includes(props.blockName)) {
+        cellTypeClass = 'kale-reserved-cell';
+      }
+
+      if (cellTypeClass === state.cellTypeClass) {
+        return null;
+      }
+      return { cellTypeClass };
+    });
   }
 
+  /**
+   * Update the style of the active cell, by changing the left border with
+   * the correct color, based on the current block name.
+   */
   updateStyles() {
-    const name = this.props.blockName || this.props.parentBlockName;
+    const name = this.props.blockName || this.props.previousBlockName;
+    const codeMirrorElem = this.props.cellElement.querySelector(
+      '.CodeMirror',
+    ) as HTMLElement;
+
+    if (codeMirrorElem) {
+      codeMirrorElem.style.borderLeft = `2px solid transparent`;
+    }
     if (!name) {
+      this.setState({ color: '' });
       return;
     }
     const rgb = this.getColorFromName(name);
     this.setState({ color: rgb });
 
-    const cellElement = this.props.cellElement;
-
-    const codeMirrorElem = cellElement.querySelector(
-      '.CodeMirror',
-    ) as HTMLElement;
     if (codeMirrorElem) {
-      codeMirrorElem.style.border = `1px solid #${rgb}`;
-    }
-    if (this.props.parentBlockName) {
-      cellElement.classList.add('kale-merged-cell');
+      codeMirrorElem.style.borderLeft = `2px solid #${rgb}`;
     }
   }
 
@@ -131,8 +204,12 @@ export class InlineMetadata extends React.Component<IProps, IState> {
     return ColorUtils.getColor(name);
   }
 
+  /**
+   * Create a list of div dots that represent the dependencies of the current
+   * block
+   */
   updateDependencies() {
-    const dependencies = this.props.prevBlockNames.map((name, i) => {
+    const dependencies = this.props.stepDependencies.map((name, i) => {
       const rgb = this.getColorFromName(name);
       return (
         <Tooltip placement="top" key={i} title={name}>
@@ -148,56 +225,66 @@ export class InlineMetadata extends React.Component<IProps, IState> {
     this.setState({ dependencies });
   }
 
-  moveElement() {
-    // FIXME:  need moved class??
-    if (
-      (this.props.blockName || this.props.parentBlockName) &&
-      this.wrapperRef &&
-      !this.wrapperRef.current.classList.contains('moved')
-    ) {
-      this.wrapperRef.current.classList.add('moved');
-      this.props.cellElement.insertAdjacentElement(
-        'afterbegin',
-        this.wrapperRef.current,
-      );
-    }
+  openEditor() {
+    const showEditor = true;
+    this.setState({ showEditor });
+    this.context.onEditorVisibilityChange(showEditor);
   }
 
   render() {
     return (
       <div>
-        <div className={this.state.className} ref={this.wrapperRef}>
-          {/* Add a `step: ` string before the Chip in case the chip belongs to a pipeline step*/}
-          {RESERVED_CELL_NAMES.includes(this.props.blockName) ? (
-            ''
-          ) : (
-            <p style={{ fontStyle: 'italic', marginRight: '5px' }}>step: </p>
-          )}
-
-          <Tooltip
-            placement="top"
-            key={this.props.blockName + 'tooltip'}
-            title={
-              RESERVED_CELL_NAMES.includes(this.props.blockName)
-                ? RESERVED_CELL_NAMES_HELP_TEXT[this.props.blockName]
-                : 'This cell starts the pipeline step: ' + this.props.blockName
+        <div ref={this.wrapperRef}>
+          <div
+            className={
+              'kale-inline-cell-metadata' +
+              (this.state.isMergedCell ? ' hidden' : '')
             }
           >
-            <Chip
-              className={`kale-chip ${this.state.cellTypeClass}`}
-              style={{ backgroundColor: `#${this.state.color}` }}
-              key={this.props.blockName}
-              label={this.props.blockName}
-            />
-          </Tooltip>
+            {/* Add a `step: ` string before the Chip in case the chip belongs to a pipeline step*/}
+            {RESERVED_CELL_NAMES.includes(this.props.blockName) ? (
+              ''
+            ) : (
+              <p style={{ fontStyle: 'italic', marginRight: '5px' }}>step: </p>
+            )}
 
-          {/* Add a `depends on: ` string before the deps dots in case there are some*/}
-          {this.state.dependencies.length > 0 ? (
-            <p style={{ fontStyle: 'italic', margin: '0 5px' }}>depends on: </p>
-          ) : (
-            ''
-          )}
-          {this.state.dependencies}
+            <Tooltip
+              placement="top"
+              key={this.props.blockName + 'tooltip'}
+              title={
+                RESERVED_CELL_NAMES.includes(this.props.blockName)
+                  ? RESERVED_CELL_NAMES_HELP_TEXT[this.props.blockName]
+                  : 'This cell starts the pipeline step: ' +
+                    this.props.blockName
+              }
+            >
+              <Chip
+                className={`kale-chip ${this.state.cellTypeClass}`}
+                style={{ backgroundColor: `#${this.state.color}` }}
+                key={this.props.blockName}
+                label={this.props.blockName}
+              />
+            </Tooltip>
+
+            {/* Add a `depends on: ` string before the deps dots in case there are some*/}
+            {this.state.dependencies.length > 0 ? (
+              <p style={{ fontStyle: 'italic', margin: '0 5px' }}>
+                depends on:{' '}
+              </p>
+            ) : (
+              ''
+            )}
+            {this.state.dependencies}
+          </div>
+
+          <div
+            style={{ position: 'relative' }}
+            className={this.state.showEditor ? ' hidden' : ''}
+          >
+            <button className="kale-editor-toggle" onClick={this.openEditor}>
+              <EditIcon />
+            </button>
+          </div>
         </div>
       </div>
     );
