@@ -294,7 +294,12 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       metadata: { ...this.state.metadata, pipeline_description: desc },
     });
   updateDockerImage = (name: string) =>
-    this.setState({ metadata: { ...this.state.metadata, docker_image: name } });
+    this.setState({
+      metadata: {
+        ...this.state.metadata,
+        docker_image: name,
+      },
+    });
   updateVolumesSwitch = () => {
     this.setState({
       useNotebookVolumes: !this.state.useNotebookVolumes,
@@ -907,6 +912,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     const _deployIndex = ++deployIndex;
 
     const metadata = JSON.parse(JSON.stringify(this.state.metadata)); // Deepcopy metadata
+
+    // assign the default docker image in case it is empty
+    if (metadata.docker_image === '') {
+      metadata.docker_image = DefaultState.metadata.docker_image;
+    }
 
     if (
       metadata.volumes.filter((v: IVolumeMetadata) => v.type === 'clone')
