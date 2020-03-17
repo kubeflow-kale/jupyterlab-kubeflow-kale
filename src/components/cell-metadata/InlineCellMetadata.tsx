@@ -24,10 +24,10 @@ import {
 import { isCodeCellModel, CodeCellModel, ICellModel } from '@jupyterlab/cells';
 import Switch from 'react-switch';
 import CellUtils from '../../utils/CellUtils';
+import TagsUtils from '../../utils/TagsUtils';
 import { InlineMetadata } from './InlineMetadata';
 import {
   CellMetadataEditor,
-  RESERVED_CELL_NAMES,
   IProps as EditorProps,
 } from './CellMetadataEditor';
 import { CellMetadataContext } from './CellMetadataContext';
@@ -198,7 +198,7 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         continue;
       }
 
-      let tags = this.getKaleCellTags(this.props.notebook.content, index);
+      let tags = TagsUtils.getKaleCellTags(this.props.notebook.content, index);
       if (!tags) {
         tags = {
           blockName: '',
@@ -209,7 +209,7 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
       let previousBlockName = '';
 
       if (!tags.blockName) {
-        previousBlockName = this.getPreviousBlock(
+        previousBlockName = TagsUtils.getPreviousBlock(
           this.props.notebook.content,
           index,
         );
@@ -245,59 +245,6 @@ export class InlineCellsMetadata extends React.Component<IProps, IState> {
         callback();
       }
     });
-  };
-
-  getAllBlocks = (notebook: Notebook): string[] => {
-    let blocks = new Set<string>();
-    for (const idx of Array(notebook.model.cells.length).keys()) {
-      let mt = this.getKaleCellTags(notebook, idx);
-      if (mt && mt.blockName && mt.blockName !== '') {
-        blocks.add(mt.blockName);
-      }
-    }
-    return Array.from(blocks);
-  };
-
-  getPreviousBlock = (notebook: Notebook, current: number): string => {
-    for (let i = current - 1; i >= 0; i--) {
-      let mt = this.getKaleCellTags(notebook, i);
-      if (
-        mt &&
-        mt.blockName &&
-        mt.blockName !== 'skip' &&
-        mt.blockName !== ''
-      ) {
-        return mt.blockName;
-      }
-    }
-    return null;
-  };
-
-  getKaleCellTags = (notebook: Notebook, index: number) => {
-    const tags: string[] = CellUtils.getCellMetaData(notebook, index, 'tags');
-    if (tags) {
-      let b_name = tags.map(v => {
-        if (RESERVED_CELL_NAMES.includes(v)) {
-          return v;
-        }
-        if (v.startsWith('block:')) {
-          return v.replace('block:', '');
-        }
-      });
-
-      let prevs = tags
-        .filter(v => {
-          return v.startsWith('prev:');
-        })
-        .map(v => {
-          return v.replace('prev:', '');
-        });
-      return {
-        blockName: b_name[0],
-        prevBlockNames: prevs,
-      };
-    }
-    return null;
   };
 
   handleChange(checked: boolean) {

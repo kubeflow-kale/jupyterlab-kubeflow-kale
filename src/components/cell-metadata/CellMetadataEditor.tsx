@@ -21,13 +21,11 @@ import {
   MaterialSelect,
   MaterialSelectMulti,
 } from '../Components';
-import CellUtils from '../../utils/CellUtils';
+import TagsUtils from '../../utils/TagsUtils';
 import { isCodeCellModel } from '@jupyterlab/cells';
 import CloseIcon from '@material-ui/icons/Close';
 import ColorUtils from './ColorUtils';
 import { CellMetadataContext } from './CellMetadataContext';
-
-const KUBEFLOW_CELL_METADATA_KEY = 'kubeflow_cell';
 
 const CELL_TYPES = [
   { value: 'imports', label: 'Imports' },
@@ -122,29 +120,13 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     if (RESERVED_CELL_NAMES.includes(value)) {
       this.updateCurrentBlockName(value);
     } else {
-      this.resetCell();
+      TagsUtils.resetCell(
+        this.props.notebook,
+        this.context.activeCellIndex,
+        this.props.stepName,
+      );
     }
   };
-
-  resetCell() {
-    const value = '';
-    const previousBlocks: string[] = [];
-
-    const oldBlockName: string = this.props.stepName;
-    let cellMedatada = {
-      prevBlockNames: previousBlocks,
-      blockName: value,
-    };
-    this.setKaleCellTags(
-      this.props.notebook,
-      this.context.activeCellIndex,
-      KUBEFLOW_CELL_METADATA_KEY,
-      cellMedatada,
-      false,
-    ).then(oldValue => {
-      this.updateKaleCellsTags(this.props.notebook, oldBlockName, value);
-    });
-  }
 
   isEqual(a: any, b: any): boolean {
     return JSON.stringify(a) === JSON.stringify(b);
@@ -203,7 +185,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     if (!props.notebook) {
       return null;
     }
-    const allBlocks = this.getAllBlocks(props.notebook.content);
+    const allBlocks = TagsUtils.getAllBlocks(props.notebook.content);
     const dependencyChoices: BlockDependencyChoice[] = allBlocks
       // remove all reserved names and current step name
       .filter(
@@ -224,7 +206,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     if (!props.notebook) {
       return null;
     }
-    const prevBlockName = this.getPreviousBlock(
+    const prevBlockName = TagsUtils.getPreviousBlock(
       props.notebook.content,
       this.context.activeCellIndex,
     );
@@ -236,38 +218,6 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     };
   }
 
-  getPreviousBlock = (notebook: Notebook, current: number): string => {
-    for (let i = current - 1; i >= 0; i--) {
-      let mt = this.getKaleCellTags(notebook, i, KUBEFLOW_CELL_METADATA_KEY);
-      if (
-        mt &&
-        mt.blockName &&
-        mt.blockName !== 'skip' &&
-        mt.blockName !== ''
-      ) {
-        return mt.blockName;
-      }
-    }
-    return null;
-  };
-
-  getAllBlocks = (notebook: Notebook): string[] => {
-    if (!notebook.model) {
-      return [];
-    }
-    let blocks = new Set<string>();
-    for (const idx of Array(notebook.model.cells.length).keys()) {
-      let mt = this.getKaleCellTags(notebook, idx, KUBEFLOW_CELL_METADATA_KEY);
-      if (mt && mt.blockName && mt.blockName !== '') {
-        blocks.add(mt.blockName);
-      }
-    }
-    return Array.from(blocks);
-  };
-
-  /**
-   * Even handler of the block name input text field
-   */
   updateCurrentBlockName = (value: string) => {
     const oldBlockName: string = this.props.stepName;
     let currentCellMetadata = {
@@ -275,14 +225,13 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
       blockName: value,
     };
 
-    this.setKaleCellTags(
+    TagsUtils.setKaleCellTags(
       this.props.notebook,
       this.context.activeCellIndex,
-      KUBEFLOW_CELL_METADATA_KEY,
       currentCellMetadata,
       false,
     ).then(oldValue => {
-      this.updateKaleCellsTags(this.props.notebook, oldBlockName, value);
+      TagsUtils.updateKaleCellsTags(this.props.notebook, oldBlockName, value);
     });
   };
 
@@ -295,91 +244,12 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
       prevBlockNames: previousBlocks,
     };
 
-    this.setKaleCellTags(
+    TagsUtils.setKaleCellTags(
       this.props.notebook,
       this.context.activeCellIndex,
-      KUBEFLOW_CELL_METADATA_KEY,
       currentCellMetadata,
       true,
     );
-  };
-
-  getKaleCellTags = (notebook: Notebook, index: number, key: string) => {
-    const tags: string[] = CellUtils.getCellMetaData(notebook, index, 'tags');
-    if (tags) {
-      let b_name = tags.map(v => {
-        if (RESERVED_CELL_NAMES.includes(v)) {
-          return v;
-        }
-        if (v.startsWith('block:')) {
-          return v.replace('block:', '');
-        }
-      });
-
-      let prevs = tags
-        .filter(v => {
-          return v.startsWith('prev:');
-        })
-        .map(v => {
-          return v.replace('prev:', '');
-        });
-      return {
-        blockName: b_name[0],
-        prevBlockNames: prevs,
-      };
-    }
-    return null;
-  };
-
-  setKaleCellTags = (
-    notebookPanel: NotebookPanel,
-    index: number,
-    key: string,
-    metadata: { blockName: string; prevBlockNames: string[] },
-    save: boolean,
-  ): Promise<any> => {
-    // make the dict to save to tags
-    let nb = metadata.blockName;
-    // not a reserved name
-    if (!RESERVED_CELL_NAMES.includes(metadata.blockName)) {
-      nb = 'block:' + nb;
-    }
-    const stepDependencies = metadata.prevBlockNames || [];
-    const tags = [nb].concat(stepDependencies.map(v => 'prev:' + v));
-    return CellUtils.setCellMetaData(notebookPanel, index, 'tags', tags, save);
-  };
-
-  updateKaleCellsTags = (
-    notebookPanel: NotebookPanel,
-    oldBlockName: string,
-    newBlockName: string,
-  ) => {
-    let i: number;
-    const allPromises = [];
-    for (i = 0; i < notebookPanel.model.cells.length; i++) {
-      const tags: string[] = CellUtils.getCellMetaData(
-        notebookPanel.content,
-        i,
-        'tags',
-      );
-      let newTags: string[] = (tags || [])
-        .map(t => {
-          if (t === 'prev:' + oldBlockName) {
-            return RESERVED_CELL_NAMES.includes(newBlockName)
-              ? ''
-              : 'prev:' + newBlockName;
-          } else {
-            return t;
-          }
-        })
-        .filter(t => t !== '' && t !== 'prev:');
-      allPromises.push(
-        CellUtils.setCellMetaData(notebookPanel, i, 'tags', newTags, false),
-      );
-    }
-    Promise.all(allPromises).then(() => {
-      notebookPanel.context.save();
-    });
   };
 
   getColor(name: string) {
@@ -394,7 +264,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     if (value === this.props.stepName) {
       return false;
     }
-    const blockNames = this.getAllBlocks(this.props.notebook.content);
+    const blockNames = TagsUtils.getAllBlocks(this.props.notebook.content);
     if (blockNames.includes(value)) {
       this.setState({ stepNameErrorMsg: 'This name already exists.' });
       return true;
@@ -404,13 +274,10 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
   };
 
   getPrevBlockNotice = () => {
-    const prevBlockNotice =
-      this.state.previousBlockName && this.props.stepName === ''
-        ? 'Leave step name empty to merge code to block ' +
+    return this.state.previousBlockName && this.props.stepName === ''
+      ? 'Leave step name empty to merge code to block ' +
           this.state.previousBlockName
-        : null;
-
-    return prevBlockNotice;
+      : null;
   };
 
   /**
