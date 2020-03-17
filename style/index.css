@@ -47,6 +47,7 @@
 
 .kale-header-switch {
   flex: 0 0 auto;
+  flex: 0 0 auto;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
@@ -269,12 +270,6 @@ textarea {
   padding: 0 10px 5px 10px;
   font-size: var(--jp-ui-font-size0);
   line-height: normal;
-}
-
-.dialog-box-text {
-  display: block;
-  /* background-color: rgba(104, 160, 217, 0.25); */
-  /* padding: 4px; */
 }
 
 .jp-Dialog-content {
