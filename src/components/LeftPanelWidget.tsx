@@ -980,13 +980,12 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       }
       if (uploadPipeline && uploadPipeline.already_exists) {
         // show dialog to ask user if they want to overwrite the existing pipeline
-        result = await NotebookUtils.showYesNoDialog(
-          'Pipeline Upload Failed',
+        result = await NotebookUtils.showYesNoDialog('Pipeline Upload Failed', [
           'Pipeline with name ' +
             compileNotebook.pipeline_metadata.pipeline_name +
-            ' already exists. ' +
-            'Would you like to overwrite it?',
-        );
+            ' already exists. ',
+          'Would you like to overwrite it?',
+        ]);
         // OVERWRITE EXISTING PIPELINE
         if (result) {
           uploadPipelineArgs.overwrite = true;

@@ -70,7 +70,7 @@ export default class NotebookUtilities {
    */
   public static async showYesNoDialog(
     title: string,
-    msg: string,
+    msg: string[],
     acceptLabel: string = 'YES',
     rejectLabel: string = 'NO',
     yesButtonClassName: string = '',
@@ -80,7 +80,23 @@ export default class NotebookUtilities {
       Dialog.okButton({ label: acceptLabel, className: yesButtonClassName }),
       Dialog.cancelButton({ label: rejectLabel, className: noButtonClassName }),
     ];
-    const result = await showDialog({ title, buttons, body: msg });
+
+    const messageBody = (
+      <div key={`msg-box-${Math.random() * 100000}`}>
+        {msg.map((s: string, i: number) => {
+          return (
+            <React.Fragment>
+              <span className="dialog-box-text" key={`msg-${i}`}>
+                {s}
+              </span>
+              <br key={`br-msg-${i}`} />
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+
+    const result = await showDialog({ title, buttons, body: messageBody });
     return result.button.label === acceptLabel;
   }
 
