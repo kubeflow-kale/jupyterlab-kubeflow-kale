@@ -1424,6 +1424,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
             <CollapsablePanel
               title={'Advanced Settings'}
               dockerImageValue={this.state.metadata.docker_image}
+              dockerImageDefaultValue={DefaultState.metadata.docker_image}
               dockerChange={this.updateDockerImage}
               debug={this.state.deployDebugMessage}
               changeDebug={this.changeDeployDebugMessage}
