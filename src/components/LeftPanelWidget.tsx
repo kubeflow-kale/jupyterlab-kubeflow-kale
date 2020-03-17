@@ -885,6 +885,39 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     return null;
   };
 
+  /**
+   * Analyse the current metadata and produce some warning to be shown
+   * under the compilation task
+   * @param metadata Notebook metadata
+   */
+  getCompileWarnings = (metadata: IKaleNotebookMetadata) => {
+    let warningContent = [];
+
+    // in case the notebook's docker base image is different than the default
+    // one (e.g. the one detected in the Notebook Server), alert the user
+    if (
+      DefaultState.metadata.docker_image !== '' &&
+      metadata.docker_image !== DefaultState.metadata.docker_image
+    ) {
+      warningContent.push(
+        'The image you used to create the notebook server is different ' +
+          'from the image you have selected for your pipeline.',
+        '',
+        'Your Kubeflow pipeline will use the following image: <pre><b>' +
+          metadata.docker_image +
+          '</b></pre>',
+        'You created the notebook server using the following image: <pre><b>' +
+          DefaultState.metadata.docker_image +
+          '</b></pre>',
+        '',
+        "To use this notebook server's image as base image" +
+          ' for the pipeline steps, delete the existing docker image' +
+          ' from the Advanced Settings section.',
+      );
+    }
+    return warningContent;
+  };
+
   updateDeployProgress = (index: number, progress: DeployProgressState) => {
     let deploy: { [index: number]: DeployProgressState };
     if (!this.state.deploys[index]) {
@@ -938,9 +971,19 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
 
     console.log('metadata:', metadata);
 
+    // after parsing and validating the metadata, show warnings (if necessary)
+    const compileWarnings = this.getCompileWarnings(metadata);
+
     const nbFilePath = this.state.activeNotebook.context.path;
 
     // CREATE PIPELINE
+    this.updateDeployProgress(_deployIndex, {
+      showCompileProgress: true,
+      docManager: this.props.docManager,
+    });
+    if (compileWarnings.length) {
+      this.updateDeployProgress(_deployIndex, { compileWarnings });
+    }
     const compileNotebookArgs: ICompileNotebookArgs = {
       source_notebook_path: nbFilePath,
       notebook_metadata_overrides: metadata,
@@ -952,18 +995,26 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       compileNotebookArgs,
     );
     if (!compileNotebook) {
+      this.updateDeployProgress(_deployIndex, { compiledPath: 'error' });
       this.setState({ runDeployment: false });
       await NotebookUtils.showMessage('Operation Failed', [
         'Could not compile pipeline.',
       ]);
       return;
     }
-    let msg = [
-      'Pipeline saved successfully at ' + compileNotebook.pipeline_package_path,
-    ];
-    if (this.state.deploymentType === 'compile') {
-      await NotebookUtils.showMessage('Operation Successful', msg);
-    }
+    // Pass to the deploy progress the path to the generated py script:
+    // compileNotebook is the name of the tar package, that generated in the
+    // workdir. Instead, the python script has a slightly different name and is
+    // generated in the same directory where the notebook lives.
+    this.updateDeployProgress(_deployIndex, {
+      compiledPath:
+        nbFilePath.substring(0, nbFilePath.lastIndexOf('/')) +
+        '/' +
+        compileNotebook.pipeline_package_path.replace(
+          'pipeline.tar.gz',
+          'kale.py',
+        ),
+    });
 
     // UPLOAD
     let uploadPipeline: IUploadPipelineResp = null;
@@ -984,8 +1035,10 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       let result = true;
       if (!uploadPipeline) {
         this.setState({ runDeployment: false });
-        msg = msg.concat(['Could not upload pipeline.']);
-        await NotebookUtils.showMessage('Operation Failed', msg);
+        this.updateDeployProgress(_deployIndex, {
+          showUploadProgress: false,
+          pipeline: false,
+        });
         return;
       }
       if (uploadPipeline && uploadPipeline.already_exists) {
@@ -1009,14 +1062,6 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       }
       if (uploadPipeline && result) {
         this.updateDeployProgress(_deployIndex, { pipeline: uploadPipeline });
-        msg = msg.concat([
-          'Pipeline with name ' +
-            uploadPipeline.pipeline.name +
-            ' uploaded successfully.',
-        ]);
-        if (this.state.deploymentType === 'upload') {
-          await NotebookUtils.showMessage('Operation Successful', msg);
-        }
       }
     }
 
@@ -1034,11 +1079,11 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
       if (runPipeline) {
         this.updateDeployProgress(_deployIndex, { runPipeline });
         this.pollRun(_deployIndex, runPipeline);
-        msg = msg.concat(['Pipeline run created successfully']);
-        await NotebookUtils.showMessage('Operation Successful', msg);
       } else {
-        msg = msg.concat(['Could not create run.']);
-        await NotebookUtils.showMessage('Operation Failed', msg);
+        this.updateDeployProgress(_deployIndex, {
+          showRunProgress: false,
+          runPipeline: false,
+        });
       }
     }
     // stop deploy button icon spin
