@@ -93,6 +93,7 @@ export interface IMaterialInput {
   variant?: 'filled' | 'standard' | 'outlined';
   onBeforeUpdate?: (value: string) => boolean;
   placeholder?: string;
+  disabled?: boolean;
   style?: any;
 }
 
@@ -184,6 +185,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = props => {
         variant={props.variant as any}
         type={props.numeric && 'number'}
         helperText={helperText}
+        disabled={props.disabled || false}
       />
     </ThemeProvider>
   );
@@ -197,6 +199,7 @@ interface IMaterialSelect {
   index: number;
   helperText?: string;
   variant?: 'filled' | 'standard' | 'outlined';
+  disabled?: boolean;
   style?: any;
 }
 
@@ -256,6 +259,7 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = props =>
         }
         margin="dense"
         variant={props.variant as any}
+        disabled={props.disabled || false}
         helperText={props.helperText ? props.helperText : null}
       >
         {props.values.map((option: any) => (
