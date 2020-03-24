@@ -242,5 +242,6 @@ export default class TagsUtils {
         );
         cell.metadata.set('tags', newTags);
       });
+    notebook.context.save();
   }
 }
