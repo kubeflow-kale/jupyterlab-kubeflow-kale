@@ -26,6 +26,8 @@ import { isCodeCellModel } from '@jupyterlab/cells';
 import CloseIcon from '@material-ui/icons/Close';
 import ColorUtils from './ColorUtils';
 import { CellMetadataContext } from './CellMetadataContext';
+import { Button, Grid, IconButton } from '@material-ui/core';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 const CELL_TYPES = [
   { value: 'imports', label: 'Imports' },
@@ -326,8 +328,8 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                 value={cellType}
                 label={'Cell type'}
                 index={0}
-                variant="standard"
-                helperText={cellTypeHelperText}
+                variant="outlined"
+                style={{ width: '30%' }}
               />
 
               {cellType === 'step' ? (
@@ -337,9 +339,9 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                   value={this.props.stepName || ''}
                   regex={'^([_a-z]([_a-z0-9]*)?)?$'}
                   regexErrorMsg={this.state.stepNameErrorMsg}
-                  helperText={prevBlockNotice}
-                  variant="standard"
+                  variant="outlined"
                   onBeforeUpdate={this.onBeforeUpdate}
+                  style={{ width: '30%' }}
                 />
               ) : (
                 ''
@@ -351,8 +353,9 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                   }
                   updateSelected={this.updatePrevBlocksNames}
                   options={this.state.blockDependenciesChoices}
-                  variant="standard"
+                  variant="outlined"
                   selected={this.props.stepDependencies || []}
+                  style={{ width: '40%' }}
                 />
               ) : (
                 ''

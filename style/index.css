@@ -429,7 +429,7 @@ a {
 .kale-cell-metadata-editor {
   margin-bottom: 6px;
   display: flex;
-  border: 1px solid var(--md-grey-400);
+  border: 0px solid var(--md-grey-400);
 }
 
 .kale-cell-metadata-editor > .MuiFormControl-root {

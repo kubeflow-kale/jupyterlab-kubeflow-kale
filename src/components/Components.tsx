@@ -93,6 +93,7 @@ export interface IMaterialInput {
   variant?: 'filled' | 'standard' | 'outlined';
   onBeforeUpdate?: (value: string) => boolean;
   placeholder?: string;
+  style?: any;
 }
 
 export const MaterialInput: React.FunctionComponent<IMaterialInput> = props => {
@@ -160,6 +161,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = props => {
           },
         }}
         className={classes.textField}
+        style={props.style || {}}
         error={error}
         label={props.label}
         value={value}
@@ -195,6 +197,7 @@ interface IMaterialSelect {
   index: number;
   helperText?: string;
   variant?: 'filled' | 'standard' | 'outlined';
+  style?: any;
 }
 
 export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = props => {
@@ -244,6 +247,7 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = props =>
           },
         }}
         className={classes.textField}
+        style={props.style || {}}
         id={props.label}
         label={props.label}
         value={props.value}
@@ -329,6 +333,7 @@ interface IMaterialSelectMultiple {
   selected: string[];
   variant?: 'filled' | 'standard' | 'outlined';
   disabled?: boolean;
+  style?: any;
 }
 export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultiple> = props => {
   const classes = useStylesSelectMulti({});
@@ -366,6 +371,7 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
         margin="dense"
         disabled={props.disabled}
         className={classes.multiSelectForm}
+        style={props.style || {}}
       >
         <InputLabel
           ref={ref => {
