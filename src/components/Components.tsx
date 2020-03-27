@@ -143,6 +143,7 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = props => {
       // notchedOutline: classes.notchedOutline,
     },
     readOnly: props.readOnly,
+    spellCheck: false,
   };
   inputProps = { ...inputProps, ...props.extraInputProps };
 
