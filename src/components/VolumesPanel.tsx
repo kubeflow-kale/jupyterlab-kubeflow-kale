@@ -146,6 +146,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
                   <div className="add-button" style={{ padding: 0 }}>
                     <Button
                       variant="contained"
+                      color="primary"
                       size="small"
                       title="Add Annotation"
                       onClick={_ => this.props.addAnnotation(idx)}
@@ -249,6 +250,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
     const addButton = (
       <div className="add-button">
         <Button
+          color="primary"
           variant="contained"
           size="small"
           title="Add Volume"
@@ -337,10 +339,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
     );
 
     return (
-      <div className="kale-component" key="kale-component-volumes">
-        <div className="kale-header-switch">
-          <p className="kale-header">Volumes</p>
-        </div>
+      <React.Fragment>
         {useNotebookVolumesSwitch}
         {autoSnapshotSwitch}
         {this.props.notebookMountPoints.length > 0 &&
@@ -351,7 +350,7 @@ export class VolumesPanel extends React.Component<IProps, any> {
         this.props.useNotebookVolumes
           ? null
           : addButton}
-      </div>
+      </React.Fragment>
     );
   }
 }

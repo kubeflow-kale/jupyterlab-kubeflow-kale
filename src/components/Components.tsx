@@ -18,14 +18,12 @@ import * as React from 'react';
 import { findDOMNode } from 'react-dom';
 import {
   makeStyles,
+  useTheme,
   createStyles,
-  createMuiTheme,
   withStyles,
   Theme,
 } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
-import { ThemeProvider } from '@material-ui/styles';
-import { indigo } from '@material-ui/core/colors';
 import {
   MenuItem,
   Select,
@@ -72,12 +70,6 @@ const useStyles = makeStyles(() =>
     },
   }),
 );
-
-const theme = createMuiTheme({
-  palette: {
-    primary: indigo,
-  },
-});
 
 export interface IMaterialInput {
   updateValue: Function;
@@ -148,47 +140,45 @@ export const MaterialInput: React.FunctionComponent<IMaterialInput> = props => {
   inputProps = { ...inputProps, ...props.extraInputProps };
 
   return (
-    <ThemeProvider theme={theme}>
-      <TextField
-        InputLabelProps={{
-          classes: {
-            root: classes.label,
-          },
-          shrink: !!props.placeholder || value !== '',
-        }}
-        InputProps={inputProps}
-        FormHelperTextProps={{
-          classes: {
-            root: classes.helperLabel,
-          },
-        }}
-        className={classes.textField}
-        style={props.style || {}}
-        error={error}
-        label={props.label}
-        value={value}
-        placeholder={props.placeholder}
-        onChange={evt => {
-          setValue(evt.target.value);
-          if (!props.onBeforeUpdate) {
-            debouncedCallback(evt.target.value, props.inputIndex);
+    <TextField
+      InputLabelProps={{
+        classes: {
+          root: classes.label,
+        },
+        shrink: !!props.placeholder || value !== '',
+      }}
+      InputProps={inputProps}
+      FormHelperTextProps={{
+        classes: {
+          root: classes.helperLabel,
+        },
+      }}
+      className={classes.textField}
+      style={props.style || {}}
+      error={error}
+      label={props.label}
+      value={value}
+      placeholder={props.placeholder}
+      onChange={evt => {
+        setValue(evt.target.value);
+        if (!props.onBeforeUpdate) {
+          debouncedCallback(evt.target.value, props.inputIndex);
+        } else {
+          const r = props.onBeforeUpdate(evt.target.value);
+          if (r) {
+            updateError(true);
           } else {
-            const r = props.onBeforeUpdate(evt.target.value);
-            if (r) {
-              updateError(true);
-            } else {
-              updateError(false);
-              debouncedCallback(evt.target.value, props.inputIndex);
-            }
+            updateError(false);
+            debouncedCallback(evt.target.value, props.inputIndex);
           }
-        }}
-        margin="dense"
-        variant={props.variant as any}
-        type={props.numeric && 'number'}
-        helperText={helperText}
-        disabled={props.disabled || false}
-      />
-    </ThemeProvider>
+        }
+      }}
+      margin="dense"
+      variant={props.variant as any}
+      type={props.numeric && 'number'}
+      helperText={helperText}
+      disabled={props.disabled || false}
+    />
   );
 };
 
@@ -222,75 +212,73 @@ export const MaterialSelect: React.FunctionComponent<IMaterialSelect> = props =>
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <TextField
-        select
-        InputLabelProps={{
-          classes: {
-            root: classes.label,
+    <TextField
+      select
+      InputLabelProps={{
+        classes: {
+          root: classes.label,
+        },
+        shrink: props.value !== '',
+      }}
+      InputProps={{
+        classes: {
+          root: classes.input,
+          focused: classes.focused,
+          // notchedOutline: classes.notchedOutline,
+        },
+      }}
+      SelectProps={{
+        MenuProps: {
+          PaperProps: {
+            className: classes.menu,
           },
-          shrink: props.value !== '',
-        }}
-        InputProps={{
-          classes: {
-            root: classes.input,
-            focused: classes.focused,
-            // notchedOutline: classes.notchedOutline,
-          },
-        }}
-        SelectProps={{
-          MenuProps: {
-            PaperProps: {
-              className: classes.menu,
-            },
-          },
-        }}
-        FormHelperTextProps={{
-          classes: {
-            root: classes.helperLabel,
-          },
-        }}
-        className={classes.textField}
-        style={props.style || {}}
-        id={props.label}
-        label={props.label}
-        value={props.value}
-        onChange={evt =>
-          props.updateValue((evt.target as HTMLInputElement).value, props.index)
-        }
-        margin="dense"
-        variant={props.variant as any}
-        disabled={props.disabled || false}
-        helperText={props.helperText ? props.helperText : null}
-      >
-        {props.values.map((option: any) => (
-          <MenuItem
-            key={option.value}
-            value={option.value}
-            disabled={!!option.invalid}
-            className={getOptionClassNames(option)}
-          >
-            {option.tooltip ? (
-              <LightTooltip
-                title={option.tooltip}
-                placement="top-start"
-                interactive={!(typeof option.tooltip === 'string')}
-                TransitionComponent={Zoom}
+        },
+      }}
+      FormHelperTextProps={{
+        classes: {
+          root: classes.helperLabel,
+        },
+      }}
+      className={classes.textField}
+      style={props.style || {}}
+      id={props.label}
+      label={props.label}
+      value={props.value}
+      onChange={evt =>
+        props.updateValue((evt.target as HTMLInputElement).value, props.index)
+      }
+      margin="dense"
+      variant={props.variant as any}
+      disabled={props.disabled || false}
+      helperText={props.helperText ? props.helperText : null}
+    >
+      {props.values.map((option: any) => (
+        <MenuItem
+          key={option.value}
+          value={option.value}
+          disabled={!!option.invalid}
+          className={getOptionClassNames(option)}
+        >
+          {option.tooltip ? (
+            <LightTooltip
+              title={option.tooltip}
+              placement="top-start"
+              interactive={!(typeof option.tooltip === 'string')}
+              TransitionComponent={Zoom}
+            >
+              <div
+                className="menu-item-label"
+                onClick={ev => disableMenuItem(ev, !!option.invalid)}
               >
-                <div
-                  className="menu-item-label"
-                  onClick={ev => disableMenuItem(ev, !!option.invalid)}
-                >
-                  {option.label}
-                </div>
-              </LightTooltip>
-            ) : (
-              option.label
-            )}
-          </MenuItem>
-        ))}
-      </TextField>
-    </ThemeProvider>
+                {option.label}
+              </div>
+            </LightTooltip>
+          ) : (
+            option.label
+          )}
+        </MenuItem>
+      ))}
+    </TextField>
   );
 };
 
@@ -370,62 +358,60 @@ export const MaterialSelectMulti: React.FunctionComponent<IMaterialSelectMultipl
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <FormControl
-        variant={props.variant}
-        margin="dense"
-        disabled={props.disabled}
-        className={classes.multiSelectForm}
-        style={props.style || {}}
+    <FormControl
+      variant={props.variant}
+      margin="dense"
+      disabled={props.disabled}
+      className={classes.multiSelectForm}
+      style={props.style || {}}
+    >
+      <InputLabel
+        ref={ref => {
+          setInputLabelRef(ref);
+        }}
+        htmlFor="select-previous-blocks"
+        className={classes.label}
       >
-        <InputLabel
-          ref={ref => {
-            setInputLabelRef(ref);
-          }}
-          htmlFor="select-previous-blocks"
-          className={classes.label}
-        >
-          Depends on
-        </InputLabel>
-        <Select
-          multiple
-          MenuProps={{
-            PaperProps: {
-              className: classes.menu,
-            },
-          }}
-          onChange={evt =>
-            props.updateSelected((evt.target as HTMLInputElement).value)
-          }
-          margin="dense"
-          variant={props.variant}
-          input={inputComponent}
-          value={props.selected}
-          renderValue={elements => (
-            <div className={classes.chips}>
-              {(elements as string[]).map(value => {
-                return (
-                  <Chip
-                    style={{
-                      backgroundColor: `#${ColorUtils.getColor(value)}`,
-                    }}
-                    key={value}
-                    label={value}
-                    className={`kale-chip kale-chip-select ${classes.chip}`}
-                  />
-                );
-              })}
-            </div>
-          )}
-        >
-          {props.options.map(option => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.value}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </ThemeProvider>
+        Depends on
+      </InputLabel>
+      <Select
+        multiple
+        MenuProps={{
+          PaperProps: {
+            className: classes.menu,
+          },
+        }}
+        onChange={evt =>
+          props.updateSelected((evt.target as HTMLInputElement).value)
+        }
+        margin="dense"
+        variant={props.variant}
+        input={inputComponent}
+        value={props.selected}
+        renderValue={elements => (
+          <div className={classes.chips}>
+            {(elements as string[]).map(value => {
+              return (
+                <Chip
+                  style={{
+                    backgroundColor: `#${ColorUtils.getColor(value)}`,
+                  }}
+                  key={value}
+                  label={value}
+                  className={`kale-chip kale-chip-select ${classes.chip}`}
+                />
+              );
+            })}
+          </div>
+        )}
+      >
+        {props.options.map(option => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.value}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
   );
 };
 
@@ -440,12 +426,14 @@ interface ICollapsablePanel {
 
 export const CollapsablePanel: React.FunctionComponent<ICollapsablePanel> = props => {
   const [collapsed, setCollapsed] = React.useState(true);
+  const theme = useTheme();
 
   return (
     <div className={'' + (!collapsed && 'jp-Collapse-open')}>
       <div
         className="jp-Collapse-header kale-header"
         onClick={_ => setCollapsed(!collapsed)}
+        style={{ color: theme.kale.headers.main }}
       >
         {props.title}
       </div>

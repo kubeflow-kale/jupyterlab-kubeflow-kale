@@ -355,7 +355,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                   options={this.state.blockDependenciesChoices}
                   variant="outlined"
                   selected={this.props.stepDependencies || []}
-                  style={{ width: '40%' }}
+                  style={{ width: '35%' }}
                 />
               ) : (
                 ''

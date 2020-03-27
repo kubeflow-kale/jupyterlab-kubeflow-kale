@@ -49,6 +49,45 @@ import {
 import { RESERVED_CELL_NAMES } from './cell-metadata/CellMetadataEditor';
 import { JupyterFrontEnd } from '@jupyterlab/application';
 import { IDocumentManager } from '@jupyterlab/docmanager';
+import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+
+declare module '@material-ui/core/styles/createMuiTheme' {
+  interface Theme {
+    kale: {
+      headers: {
+        main: string;
+      };
+    };
+  }
+  // allow configuration using `createMuiTheme`
+  interface ThemeOptions {
+    kale?: {
+      headers?: {
+        main?: string;
+      };
+    };
+  }
+}
+
+const kaleTheme = createMuiTheme({
+  palette: {
+    secondary: {
+      main: '#753BBD',
+      dark: '#512984',
+      light: '#9062ca',
+    },
+    primary: {
+      main: '#2e82d7',
+      dark: '#205b96',
+      light: '#579bdf',
+    },
+  },
+  kale: {
+    headers: {
+      main: '#753BBD',
+    },
+  },
+});
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_notebook';
 
@@ -1442,74 +1481,94 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     );
 
     return (
-      <div className={'kubeflow-widget'} key="kale-widget">
-        <div className={'kubeflow-widget-content'}>
-          <div>
-            <p
-              style={{ fontSize: 'var(--jp-ui-font-size3)' }}
-              className="kale-header"
-            >
-              Kale Deployment Panel {this.state.isEnabled}
-            </p>
-          </div>
-
-          <div className="kale-component">
-            <InlineCellsMetadata
-              onMetadataEnable={this.onMetadataEnable}
-              notebook={this.state.activeNotebook}
-              activeCellIndex={this.state.activeCellIndex}
-            />
-          </div>
-
-          <div
-            className={
-              'kale-component ' + (this.state.isEnabled ? '' : 'hidden')
-            }
-          >
+      <ThemeProvider theme={kaleTheme}>
+        <div className={'kubeflow-widget'} key="kale-widget">
+          <div className={'kubeflow-widget-content'}>
             <div>
-              <p className="kale-header">Pipeline Metadata</p>
+              <p
+                style={{
+                  fontSize: 'var(--jp-ui-font-size3)',
+                  color: kaleTheme.kale.headers.main,
+                }}
+                className="kale-header"
+              >
+                Kale Deployment Panel {this.state.isEnabled}
+              </p>
             </div>
 
-            <div className={'input-container'}>
-              {experiment_name_input}
-              {pipeline_name_input}
-              {pipeline_desc_input}
+            <div className="kale-component">
+              <InlineCellsMetadata
+                onMetadataEnable={this.onMetadataEnable}
+                notebook={this.state.activeNotebook}
+                activeCellIndex={this.state.activeCellIndex}
+              />
+            </div>
+
+            <div
+              className={
+                'kale-component ' + (this.state.isEnabled ? '' : 'hidden')
+              }
+            >
+              <div>
+                <p
+                  className="kale-header"
+                  style={{ color: kaleTheme.kale.headers.main }}
+                >
+                  Pipeline Metadata
+                </p>
+              </div>
+
+              <div className={'input-container'}>
+                {experiment_name_input}
+                {pipeline_name_input}
+                {pipeline_desc_input}
+              </div>
+            </div>
+
+            <div className={this.state.isEnabled ? '' : 'hidden'}>
+              <div className="kale-component" key="kale-component-volumes">
+                <div className="kale-header-switch">
+                  <p
+                    className="kale-header"
+                    style={{ color: kaleTheme.kale.headers.main }}
+                  >
+                    Volumes
+                  </p>
+                </div>
+                {volsPanel}
+              </div>
+            </div>
+
+            <div
+              className={
+                'kale-component ' + (this.state.isEnabled ? '' : 'hidden')
+              }
+            >
+              <CollapsablePanel
+                title={'Advanced Settings'}
+                dockerImageValue={this.state.metadata.docker_image}
+                dockerImageDefaultValue={DefaultState.metadata.docker_image}
+                dockerChange={this.updateDockerImage}
+                debug={this.state.deployDebugMessage}
+                changeDebug={this.changeDeployDebugMessage}
+              />
             </div>
           </div>
-
-          <div className={this.state.isEnabled ? '' : 'hidden'}>
-            {volsPanel}
-          </div>
-
           <div
-            className={
-              'kale-component ' + (this.state.isEnabled ? '' : 'hidden')
-            }
+            className={this.state.isEnabled ? '' : 'hidden'}
+            style={{ marginTop: 'auto' }}
           >
-            <CollapsablePanel
-              title={'Advanced Settings'}
-              dockerImageValue={this.state.metadata.docker_image}
-              dockerImageDefaultValue={DefaultState.metadata.docker_image}
-              dockerChange={this.updateDockerImage}
-              debug={this.state.deployDebugMessage}
-              changeDebug={this.changeDeployDebugMessage}
+            <DeploysProgress
+              deploys={this.state.deploys}
+              onPanelRemove={this.onPanelRemove}
+            />
+            <SplitDeployButton
+              running={this.state.runDeployment}
+              handleClick={this.activateRunDeployState}
             />
           </div>
         </div>
-        <div
-          className={this.state.isEnabled ? '' : 'hidden'}
-          style={{ marginTop: 'auto' }}
-        >
-          <DeploysProgress
-            deploys={this.state.deploys}
-            onPanelRemove={this.onPanelRemove}
-          />
-          <SplitDeployButton
-            running={this.state.runDeployment}
-            handleClick={this.activateRunDeployState}
-          />
-        </div>
-      </div>
+      </ThemeProvider>
     );
   }
 }

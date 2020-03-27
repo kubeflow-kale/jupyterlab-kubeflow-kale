@@ -110,22 +110,12 @@
 .deploy-button button {
   height: 30px;
   width: 95%;
-  color: #fff;
   border-radius: 2px;
-  background: rgb(65, 121, 244);
   font-size: 12px;
   border-width: 0;
   padding: 2px 4px;
   font-weight: 600;
   text-transform: uppercase;
-}
-
-.deploy-button button:hover {
-  background: rgb(63, 108, 197);
-}
-
-.deploy-button button:active {
-  background: rgb(61, 84, 167);
 }
 
 /*-----------------------------------------------------------------------------
@@ -280,15 +270,6 @@ textarea {
   margin-top: 10px;
 }
 
-.add-button button {
-  color: white;
-  background: rgb(65, 121, 244);
-}
-
-.add-button button:hover {
-  background: rgb(63, 108, 197);
-}
-
 .delete-button button {
   padding: 5px 0px;
   margin: 0px 10px;
@@ -430,6 +411,8 @@ a {
   margin-bottom: 6px;
   display: flex;
   border: 0px solid var(--md-grey-400);
+  align-items: center;
+  padding-right: 25px;
 }
 
 .kale-cell-metadata-editor > .MuiFormControl-root {
