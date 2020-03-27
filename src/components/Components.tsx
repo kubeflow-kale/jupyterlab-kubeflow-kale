@@ -31,6 +31,7 @@ import {
   Input,
   Tooltip,
   Zoom,
+  Switch,
 } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Chip from '@material-ui/core/Chip';
@@ -39,7 +40,6 @@ import FormControl from '@material-ui/core/FormControl';
 import OutlinedInput from '@material-ui/core/OutlinedInput';
 
 import { useDebouncedCallback } from 'use-debounce';
-import Switch from 'react-switch';
 import { RokInput } from './RokInput';
 import ColorUtils from './cell-metadata/ColorUtils';
 
@@ -455,16 +455,9 @@ export const CollapsablePanel: React.FunctionComponent<ICollapsablePanel> = prop
           <Switch
             checked={props.debug}
             onChange={_ => props.changeDebug()}
-            onColor="#599EF0"
-            onHandleColor="#477EF0"
-            handleDiameter={18}
-            uncheckedIcon={false}
-            checkedIcon={false}
-            boxShadow="0px 1px 5px rgba(0, 0, 0, 0.6)"
-            activeBoxShadow="0px 0px 1px 7px rgba(0, 0, 0, 0.2)"
-            height={10}
-            width={20}
-            className="skip-switch"
+            color="primary"
+            name="enableKale"
+            inputProps={{ 'aria-label': 'primary checkbox' }}
           />
         </div>
       </div>

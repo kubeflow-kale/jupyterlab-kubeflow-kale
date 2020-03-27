@@ -230,20 +230,6 @@ textarea {
   line-height: normal;
 }
 
-.skip-switch-container {
-  display: flex;
-  align-items: center;
-}
-
-.skip-switch-container span {
-  font-size: var(--jp-ui-font-size0);
-  color: var(--jp-ui-font-color0);
-}
-
-.skip-switch-label {
-  margin-right: 5px;
-}
-
 .switch-label {
   display: table-cell;
   vertical-align: middle;
@@ -463,4 +449,15 @@ a {
 .MuiButtonBase-root.Mui-disabled.menu-item-tooltip .menu-item-label {
   padding: 8px 16px;
   width: 100%;
+}
+
+/* this class needs to be applied to every material switch we use because
+  jp lab overrides the height of every input checkbox component.
+*/
+.material-switch {
+  color: white;
+}
+
+.material-switch input {
+  height: 100%;
 }

@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { Button, Tooltip, Zoom } from '@material-ui/core';
+import { Button, Switch, Tooltip, Zoom } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
 import {
@@ -25,7 +25,6 @@ import {
   LightTooltip,
 } from './Components';
 import { IVolumeMetadata, ISelectVolumeTypes } from './LeftPanelWidget';
-import Switch from 'react-switch';
 import { IRPCError, rokErrorTooltip } from '../utils/RPCUtils';
 
 interface IProps {
@@ -214,17 +213,11 @@ export class VolumesPanel extends React.Component<IProps, any> {
                   <Switch
                     checked={v.snapshot}
                     onChange={_ => this.props.updateVolumeSnapshot(idx)}
-                    onColor="#599EF0"
-                    onHandleColor="#477EF0"
-                    handleDiameter={18}
-                    uncheckedIcon={false}
-                    checkedIcon={false}
-                    boxShadow="0px 1px 5px rgba(0, 0, 0, 0.6)"
-                    activeBoxShadow="0px 0px 1px 7px rgba(0, 0, 0, 0.2)"
-                    height={10}
-                    width={20}
-                    className="skip-switch"
-                    id="skip-switch"
+                    color="primary"
+                    name="enableKale"
+                    inputProps={{ 'aria-label': 'primary checkbox' }}
+                    id="snapshot-switch"
+                    className="material-switch"
                   />
                 </div>
 
@@ -283,17 +276,11 @@ export class VolumesPanel extends React.Component<IProps, any> {
                 this.props.notebookMountPoints.length === 0
               }
               onChange={_ => this.props.updateVolumesSwitch()}
-              onColor="#599EF0"
-              onHandleColor="#477EF0"
-              handleDiameter={18}
-              uncheckedIcon={false}
-              checkedIcon={false}
-              boxShadow="0px 1px 5px rgba(0, 0, 0, 0.6)"
-              activeBoxShadow="0px 0px 1px 7px rgba(0, 0, 0, 0.2)"
-              height={10}
-              width={20}
-              className="skip-switch"
+              color="primary"
+              name="enableKale"
+              inputProps={{ 'aria-label': 'primary checkbox' }}
               id="nb-volumes-switch"
+              className="material-switch"
             />
           </div>
         </LightTooltip>
@@ -321,17 +308,11 @@ export class VolumesPanel extends React.Component<IProps, any> {
                 !!this.props.rokError || this.props.volumes.length === 0
               }
               onChange={_ => this.props.updateAutosnapshotSwitch()}
-              onColor="#599EF0"
-              onHandleColor="#477EF0"
-              handleDiameter={18}
-              uncheckedIcon={false}
-              checkedIcon={false}
-              boxShadow="0px 1px 5px rgba(0, 0, 0, 0.6)"
-              activeBoxShadow="0px 0px 1px 7px rgba(0, 0, 0, 0.2)"
-              height={10}
-              width={20}
-              className="skip-switch"
+              color="primary"
+              name="enableKale"
+              inputProps={{ 'aria-label': 'primary checkbox' }}
               id="autosnapshot-switch"
+              classes={{ root: 'material-switch' }}
             />
           </div>
         </LightTooltip>
