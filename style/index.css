@@ -388,7 +388,7 @@ a {
 }
 
 .kale-cell-metadata-editor {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: flex;
   border: 0px solid var(--md-grey-400);
   align-items: center;
@@ -397,6 +397,14 @@ a {
 .kale-cell-metadata-editor > .MuiFormControl-root {
   margin-left: 4px;
   margin-right: 4px;
+}
+
+.kale-cell-metadata-editor-helper-text {
+  color: darkgoldenrod;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
 }
 
 .kale-metadata-editor-wrapper.opened .kale-editor-toggle {

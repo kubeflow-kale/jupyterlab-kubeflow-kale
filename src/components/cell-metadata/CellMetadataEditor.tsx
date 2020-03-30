@@ -80,14 +80,14 @@ type BlockDependencyChoice = { value: string; color: string };
 interface IState {
   // used to store the closest preceding block name. Used in case the current
   // block name is empty, to suggest merging to the previous one.
-  previousBlockName?: string;
+  previousStepName?: string;
   stepNameErrorMsg?: string;
   // a list of blocks that the current step can be dependent on.
   blockDependenciesChoices?: BlockDependencyChoice[];
 }
 
 const DefaultState: IState = {
-  previousBlockName: null,
+  previousStepName: null,
   stepNameErrorMsg: STEP_NAME_ERROR_MSG,
   blockDependenciesChoices: [],
 };
@@ -211,11 +211,11 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
       props.notebook.content,
       this.context.activeCellIndex,
     );
-    if (prevBlockName === this.state.previousBlockName) {
+    if (prevBlockName === this.state.previousStepName) {
       return null;
     }
     return {
-      previousBlockName: prevBlockName,
+      previousStepName: prevBlockName,
     };
   }
 
@@ -270,10 +270,9 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     return false;
   };
 
-  getPrevBlockNotice = () => {
-    return this.state.previousBlockName && this.props.stepName === ''
-      ? 'Leave step name empty to merge code to block ' +
-          this.state.previousBlockName
+  getPrevStepNotice = () => {
+    return this.state.previousStepName && this.props.stepName === ''
+      ? `Leave the step name empty to merge the cell to step '${this.state.previousStepName}'`
       : null;
   };
 
@@ -292,10 +291,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
       ? `#${ColorUtils.getColor(this.props.stepName)}`
       : 'transparent';
 
-    const cellTypeHelperText =
-      RESERVED_CELL_NAMES_HELP_TEXT[this.props.stepName] || null;
-
-    const prevBlockNotice = this.getPrevBlockNotice();
+    const prevStepNotice = this.getPrevStepNotice();
 
     return (
       <React.Fragment>
@@ -360,6 +356,14 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
+            </div>
+            <div
+              className={
+                'kale-cell-metadata-editor-helper-text' +
+                (this.context.isEditorVisible ? '' : ' hidden')
+              }
+            >
+              <p>{prevStepNotice}</p>
             </div>
           </div>
         </div>
