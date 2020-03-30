@@ -192,7 +192,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
       .filter(
         el => !RESERVED_CELL_NAMES.includes(el) && !(el === props.stepName),
       )
-      .map(name => ({ value: name, color: `#${this.getColor(name)}` }));
+      .map(name => ({ value: name, color: `#${ColorUtils.getColor(name)}` }));
 
     if (this.isEqual(state.blockDependenciesChoices, dependencyChoices)) {
       return null;
@@ -253,10 +253,6 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     );
   };
 
-  getColor(name: string) {
-    return ColorUtils.getColor(name);
-  }
-
   /**
    * Function called before updating the value of the block name input text
    * field. It acts as a validator.
@@ -292,6 +288,9 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
     const cellType = RESERVED_CELL_NAMES.includes(this.props.stepName)
       ? this.props.stepName
       : 'step';
+    const cellColor = this.props.stepName
+      ? `#${ColorUtils.getColor(this.props.stepName)}`
+      : 'transparent';
 
     const cellTypeHelperText =
       RESERVED_CELL_NAMES_HELP_TEXT[this.props.stepName] || null;
@@ -314,6 +313,7 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                 'kale-cell-metadata-editor' +
                 (this.context.isEditorVisible ? '' : ' hidden')
               }
+              style={{ borderLeft: `2px solid ${cellColor}` }}
             >
               <MaterialSelect
                 updateValue={this.updateCurrentCellType}
