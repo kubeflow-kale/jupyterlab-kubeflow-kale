@@ -358,7 +358,6 @@ a {
   position: relative;
 }
 
-.kale-editor-close-btn,
 .kale-editor-toggle {
   border: 0;
   width: 16px;
@@ -372,7 +371,6 @@ a {
   color: var(--jp-inverse-layout-color3);
 }
 
-.kale-editor-close-btn > svg,
 .kale-editor-toggle > svg {
   width: 100%;
   height: auto;
@@ -394,7 +392,6 @@ a {
   display: flex;
   border: 0px solid var(--md-grey-400);
   align-items: center;
-  padding-right: 25px;
 }
 
 .kale-cell-metadata-editor > .MuiFormControl-root {

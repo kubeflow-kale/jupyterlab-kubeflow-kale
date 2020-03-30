@@ -26,8 +26,7 @@ import { isCodeCellModel } from '@jupyterlab/cells';
 import CloseIcon from '@material-ui/icons/Close';
 import ColorUtils from './ColorUtils';
 import { CellMetadataContext } from './CellMetadataContext';
-import { Button, Grid, IconButton } from '@material-ui/core';
-import DeleteIcon from '@material-ui/icons/Delete';
+import { IconButton } from '@material-ui/core';
 
 const CELL_TYPES = [
   { value: 'imports', label: 'Imports' },
@@ -316,12 +315,6 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
                 (this.context.isEditorVisible ? '' : ' hidden')
               }
             >
-              <button
-                className="kale-editor-close-btn"
-                onClick={() => this.closeEditor()}
-              >
-                <CloseIcon />
-              </button>
               <MaterialSelect
                 updateValue={this.updateCurrentCellType}
                 values={CELL_TYPES}
@@ -360,6 +353,13 @@ export class CellMetadataEditor extends React.Component<IProps, IState> {
               ) : (
                 ''
               )}
+
+              <IconButton
+                aria-label="delete"
+                onClick={() => this.closeEditor()}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
             </div>
           </div>
         </div>
