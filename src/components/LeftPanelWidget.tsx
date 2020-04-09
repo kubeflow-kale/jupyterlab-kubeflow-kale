@@ -49,45 +49,8 @@ import {
 import { RESERVED_CELL_NAMES } from './cell-metadata/CellMetadataEditor';
 import { JupyterFrontEnd } from '@jupyterlab/application';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-
-declare module '@material-ui/core/styles/createMuiTheme' {
-  interface Theme {
-    kale: {
-      headers: {
-        main: string;
-      };
-    };
-  }
-  // allow configuration using `createMuiTheme`
-  interface ThemeOptions {
-    kale?: {
-      headers?: {
-        main?: string;
-      };
-    };
-  }
-}
-
-const kaleTheme = createMuiTheme({
-  palette: {
-    secondary: {
-      main: '#753BBD',
-      dark: '#512984',
-      light: '#9062ca',
-    },
-    primary: {
-      main: '#2e82d7',
-      dark: '#205b96',
-      light: '#579bdf',
-    },
-  },
-  kale: {
-    headers: {
-      main: '#753BBD',
-    },
-  },
-});
+import { ThemeProvider } from '@material-ui/core/styles';
+import { theme } from '../Theme';
 
 const KALE_NOTEBOOK_METADATA_KEY = 'kubeflow_notebook';
 
@@ -1481,14 +1444,14 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
     );
 
     return (
-      <ThemeProvider theme={kaleTheme}>
+      <ThemeProvider theme={theme}>
         <div className={'kubeflow-widget'} key="kale-widget">
           <div className={'kubeflow-widget-content'}>
             <div>
               <p
                 style={{
                   fontSize: 'var(--jp-ui-font-size3)',
-                  color: kaleTheme.kale.headers.main,
+                  color: theme.kale.headers.main,
                 }}
                 className="kale-header"
               >
@@ -1512,7 +1475,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
               <div>
                 <p
                   className="kale-header"
-                  style={{ color: kaleTheme.kale.headers.main }}
+                  style={{ color: theme.kale.headers.main }}
                 >
                   Pipeline Metadata
                 </p>
@@ -1530,7 +1493,7 @@ export class KubeflowKaleLeftPanel extends React.Component<IProps, IState> {
                 <div className="kale-header-switch">
                   <p
                     className="kale-header"
-                    style={{ color: kaleTheme.kale.headers.main }}
+                    style={{ color: theme.kale.headers.main }}
                   >
                     Volumes
                   </p>
