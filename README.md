@@ -1,3 +1,5 @@
+> ⚠️**NOTICE**⚠️: This repository has been archived. The code has been moved to the `kale` repository, where it is maintained under the `labextension` folder.
+
 ## Kale JupyterLab Extension
 
 This JupyterLab extension provides a Kubeflow specific left area that can be used to deploy a Notebook to Kubeflow Pipelines. The UI is just high level component designed to let the user annotate Notebook metadata and Cells metadata easily and visually. In order to convert the notebook to a Kubeflow Pipeline workflow and have it run in KFP, [Kale](http://github.com/kubeflow-kale/kale) needs to be installed in the same Python environment as the running Notebook Kernel.
